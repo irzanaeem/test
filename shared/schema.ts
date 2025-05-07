@@ -12,7 +12,9 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   phone: text("phone"),
   address: text("address").notNull(),
+  city: text("city").notNull(),
   isStore: boolean("is_store").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Store Model
@@ -92,17 +94,35 @@ export const notifications = pgTable("notifications", {
   relatedOrderId: integer("related_order_id").references(() => orders.id),
 });
 
+// Pakistan cities
+export const pakistanCities = [
+  'Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Rawalpindi', 
+  'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'
+] as const;
+
 // Schemas for inserts with validation
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  firstName: true,
-  lastName: true,
-  email: true,
-  phone: true,
-  address: true,
-  isStore: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    firstName: true,
+    lastName: true,
+    email: true,
+    phone: true,
+    address: true,
+    city: true,
+    isStore: true,
+  })
+  .extend({
+    password: z.string().min(8, "Password must be at least 8 characters long"),
+    email: z.string().email("Please enter a valid email address"),
+    city: z.enum(pakistanCities, {
+      errorMap: () => ({ message: "Please select a valid city in Pakistan" }),
+    }),
+    agreeToTerms: z.boolean().refine(val => val === true, {
+      message: "You must agree to the terms and conditions",
+    }),
+  });
 
 export const insertStoreSchema = createInsertSchema(stores).omit({ 
   id: true,
