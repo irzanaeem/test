@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { pakistanCities } from "@shared/schema";
 
-// Type assertion to make TypeScript happy
-const cityArray = pakistanCities as unknown as [string, ...string[]];
+// Convert readonly array to mutable for zod enum
+const cityArray = [...pakistanCities] as [string, ...string[]];
 
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +60,7 @@ const signupSchema = z.object({
   confirmPassword: z.string(),
   phone: z.string().optional(),
   address: z.string().min(1, "Address is required"),
-  city: z.enum(pakistanCities as [string, ...string[]]),
+  city: z.enum(cityArray),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions",
   }),

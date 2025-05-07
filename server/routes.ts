@@ -217,7 +217,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        if (!inventoryItem.inStock || inventoryItem.quantity < item.quantity) {
+        // Safely handle quantity checks
+        const quantity = inventoryItem.quantity ?? 0;
+        if (!inventoryItem.inStock || quantity < item.quantity) {
           return res.status(400).json({ 
             message: `Medication with ID ${item.medicationId} is out of stock or has insufficient quantity` 
           });
@@ -225,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Update inventory quantity
         await storage.updateStoreInventory(inventoryItem.id, {
-          quantity: inventoryItem.quantity - item.quantity
+          quantity: quantity - item.quantity
         });
       }
       
