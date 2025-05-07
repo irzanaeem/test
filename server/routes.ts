@@ -1,133 +1,54 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import session from "express-session";
-import memorystore from "memorystore";
 import { z } from "zod";
 import { 
-  insertUserSchema, 
   insertOrderSchema, 
-  insertOrderItemSchema, 
-  loginSchema 
+  insertOrderItemSchema,
+  pakistanCities
 } from "@shared/schema";
-
-const MemoryStore = memorystore(session);
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup session middleware
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "medifind-secret",
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 },
-      store: new MemoryStore({ checkPeriod: 86400000 }),
-    })
-  );
+  // Setup authentication
+  setupAuth(app);
 
-  // Auth middleware
-  const requireAuth = (req: Request, res: Response, next: Function) => {
-    if (!req.session.userId) {
+  // Auth middleware - uses Passport
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     next();
   };
 
-  // Auth routes
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
-    try {
-      const userData = insertUserSchema.parse(req.body);
-      
-      // Check if username or email already exists
-      const existingUsername = await storage.getUserByUsername(userData.username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-      
-      const existingEmail = await storage.getUserByEmail(userData.email);
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-      
-      // Create user
-      const user = await storage.createUser(userData);
-      
-      // Set session
-      req.session.userId = user.id;
-      
-      // Return user without password
-      const { password, ...userWithoutPassword } = user;
-      return res.status(201).json(userWithoutPassword);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
-      }
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    try {
-      const loginData = loginSchema.parse(req.body);
-      
-      const user = await storage.getUserByUsername(loginData.username);
-      if (!user || user.password !== loginData.password) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-      
-      // Set session
-      req.session.userId = user.id;
-      
-      // Return user without password
-      const { password, ...userWithoutPassword } = user;
-      return res.status(200).json(userWithoutPassword);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input", errors: error.errors });
-      }
-      return res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      res.clearCookie("connect.sid");
-      return res.status(200).json({ message: "Logged out successfully" });
-    });
-  });
-
-  app.get("/api/auth/me", async (req: Request, res: Response) => {
-    if (!req.session.userId) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    const user = await storage.getUser(req.session.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    // Return user without password
-    const { password, ...userWithoutPassword } = user;
-    return res.status(200).json(userWithoutPassword);
-  });
-
   // Store routes
   app.get("/api/stores", async (req: Request, res: Response) => {
     try {
-      const { query } = req.query;
+      const { query, city } = req.query;
       
       let stores;
-      if (query && typeof query === "string" && query.trim() !== "") {
+      
+      // Filter by user's city if authenticated
+      if (req.isAuthenticated() && !city) {
+        const userCity = (req.user as any).city;
+        stores = await storage.getStoresByCity(userCity);
+      } 
+      // Filter by specific city if provided in query
+      else if (city && typeof city === "string" && pakistanCities.includes(city as any)) {
+        stores = await storage.getStoresByCity(city);
+      }
+      // Search by query if provided
+      else if (query && typeof query === "string" && query.trim() !== "") {
         stores = await storage.searchStores(query);
-      } else {
+      } 
+      // Otherwise get all stores
+      else {
         stores = await storage.getStores();
       }
       
       return res.status(200).json(stores);
     } catch (error) {
+      console.error("Error fetching stores:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -146,6 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json(store);
     } catch (error) {
+      console.error("Error fetching store:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -164,6 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json(medications);
     } catch (error) {
+      console.error("Error fetching medications:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -182,6 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json(medication);
     } catch (error) {
+      console.error("Error fetching medication:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -202,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const inventory = await storage.getStoreInventory(storeId);
       return res.status(200).json(inventory);
     } catch (error) {
+      console.error("Error fetching inventory:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -222,6 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json(inventoryItem);
     } catch (error) {
+      console.error("Error fetching inventory item:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -229,10 +155,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Order routes
   app.get("/api/orders", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = (req.user as any).id;
       const orders = await storage.getOrdersByUserId(userId);
       return res.status(200).json(orders);
     } catch (error) {
+      console.error("Error fetching orders:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -250,12 +177,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if the order belongs to the authenticated user
-      if (order.userId !== req.session.userId) {
+      if (order.userId !== (req.user as any).id) {
         return res.status(403).json({ message: "Forbidden" });
       }
       
       return res.status(200).json(order);
     } catch (error) {
+      console.error("Error fetching order:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -267,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate order data
       const validatedOrder = insertOrderSchema.parse({
         ...order,
-        userId: req.session.userId
+        userId: (req.user as any).id
       });
       
       // Validate order items
@@ -303,8 +231,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create order
       const newOrder = await storage.createOrder(validatedOrder, validatedItems);
+      
+      // Create notification for user
+      await storage.createNotification({
+        userId: (req.user as any).id,
+        title: "Order Placed",
+        message: `Your order #${newOrder.id} has been placed successfully.`,
+        type: "order",
+        relatedOrderId: newOrder.id
+      });
+      
       return res.status(201).json(newOrder);
     } catch (error) {
+      console.error("Error creating order:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input", errors: error.errors });
       }
@@ -315,10 +254,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notification routes
   app.get("/api/notifications", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = (req.user as any).id;
       const notifications = await storage.getNotifications(userId);
       return res.status(200).json(notifications);
     } catch (error) {
+      console.error("Error fetching notifications:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -337,16 +277,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json(updatedNotification);
     } catch (error) {
+      console.error("Error marking notification as read:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
 
   app.post("/api/notifications/read-all", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = req.session.userId!;
+      const userId = (req.user as any).id;
       await storage.markAllNotificationsAsRead(userId);
       return res.status(200).json({ message: "All notifications marked as read" });
     } catch (error) {
+      console.error("Error marking all notifications as read:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -356,6 +298,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // This route is just a placeholder, as the actual OCR processing will be done client-side
     // We don't need to implement anything here as Tesseract.js will handle the OCR processing
     return res.status(200).json({ message: "OCR scanning is handled client-side with Tesseract.js" });
+  });
+  
+  // Cities endpoint for the frontend to get available Pakistan cities
+  app.get("/api/cities", (req: Request, res: Response) => {
+    return res.status(200).json(pakistanCities);
   });
 
   const httpServer = createServer(app);
