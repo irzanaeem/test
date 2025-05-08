@@ -20,14 +20,14 @@ const Navbar = () => {
   const cartDropdownRef = useRef<HTMLDivElement>(null);
   
   // Fetch notifications to check for unread notifications
-  const { data: notifications } = useQuery({
+  const { data: notifications = [] } = useQuery<any[]>({
     queryKey: ['/api/notifications'],
     enabled: !!user,
   });
   
   useEffect(() => {
-    if (notifications) {
-      const unreadNotifications = notifications.filter((notification: any) => !notification.read);
+    if (notifications && notifications.length > 0) {
+      const unreadNotifications = notifications.filter((notification) => !notification.read);
       setHasNotifications(unreadNotifications.length > 0);
     }
   }, [notifications]);

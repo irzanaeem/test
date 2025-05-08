@@ -15,6 +15,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<Omit<SelectUser, "password">, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<Omit<SelectUser, "password">, Error, RegisterData>;
+  logout: () => void;
 };
 
 type LoginData = {
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/auth/me"], user);
       toast({
         title: "Registration successful",
-        description: `Welcome to MediFind, ${user.firstName}!`,
+        description: `Welcome to E Pharma, ${user.firstName}!`,
       });
     },
     onError: (error: Error) => {
@@ -110,6 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Convenience function for logout
+  const logout = () => {
+    logoutMutation.mutate();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -119,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        logout,
       }}
     >
       {children}
