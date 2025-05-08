@@ -71,7 +71,7 @@ const Navbar = () => {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
               <i className="ri-capsule-fill text-primary-500 text-2xl mr-2"></i>
-              <span className="font-heading font-bold text-primary-500 text-xl">MediFind</span>
+              <span className="font-heading font-bold text-primary-500 text-xl">E Pharma</span>
             </Link>
           </div>
           
@@ -115,50 +115,59 @@ const Navbar = () => {
               </Link>
               
               {user ? (
-                <div className="ml-4 relative">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center max-w-xs rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        <span className="sr-only">Open user menu</span>
-                        <div className="relative">
-                          <span className="bg-primary-500 h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                            {getInitials(user.firstName, user.lastName)}
-                          </span>
-                          {hasNotifications && (
-                            <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-                          )}
+                <div className="ml-4 flex items-center space-x-2">
+                  <button 
+                    onClick={() => logout()} 
+                    className="text-sm font-medium text-red-500 hover:text-red-600 px-3 py-1 border border-red-500 rounded-md hover:bg-red-50 transition-colors"
+                  >
+                    Logout
+                  </button>
+                  
+                  <div className="relative">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center max-w-xs rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
+                          <span className="sr-only">Open user menu</span>
+                          <div className="relative">
+                            <span className="bg-primary-500 h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                              {getInitials(user.firstName, user.lastName)}
+                            </span>
+                            {hasNotifications && (
+                              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+                            )}
+                          </div>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <div className="px-4 py-3">
+                          <p className="text-sm font-medium text-neutral-900 truncate">
+                            {user.firstName} {user.lastName}
+                          </p>
+                          <p className="text-xs text-neutral-500 truncate mt-1">
+                            {user.email}
+                          </p>
                         </div>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <div className="px-4 py-3">
-                        <p className="text-sm font-medium text-neutral-900 truncate">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-neutral-500 truncate mt-1">
-                          {user.email}
-                        </p>
-                      </div>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/profile" className="cursor-pointer w-full">
-                          Your Profile
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/notifications" className="cursor-pointer w-full flex items-center justify-between">
-                          <span>Notifications</span>
-                          {hasNotifications && (
-                            <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">New</span>
-                          )}
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
-                        Sign out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href="/profile" className="cursor-pointer w-full">
+                            Your Profile
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/notifications" className="cursor-pointer w-full flex items-center justify-between">
+                            <span>Notifications</span>
+                            {hasNotifications && (
+                              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">New</span>
+                            )}
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
+                          Sign out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               ) : (
                 <div className="ml-4 flex items-center space-x-3">
