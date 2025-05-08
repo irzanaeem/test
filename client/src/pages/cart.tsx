@@ -258,8 +258,10 @@ const CartPage = () => {
                             size="icon"
                             className="text-red-500"
                             onClick={() => removeItem(item.medicationId)}
+                            aria-label="Remove item from cart"
+                            title="Remove item from cart"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                           
                           <span className="font-medium ml-3">
@@ -350,6 +352,8 @@ const CartPage = () => {
                         className="mt-4 shadow-md border border-primary-600"
                         onClick={() => handleCheckout(Number(storeId))}
                         disabled={checkoutMutation.isPending}
+                        aria-label="Place your order"
+                        title="Submit your order to the pharmacy"
                       >
                         {checkoutMutation.isPending ? "Processing..." : "Place Order"}
                       </Button>
@@ -387,6 +391,8 @@ const CartPage = () => {
                     variant="outline"
                     className="w-full shadow-sm border border-neutral-300"
                     onClick={() => setLocation("/")}
+                    aria-label="Continue shopping"
+                    title="Return to the medications page"
                   >
                     Continue Shopping
                   </Button>
@@ -395,6 +401,8 @@ const CartPage = () => {
                     variant="ghost"
                     className="w-full mt-3 text-red-500"
                     onClick={clearCart}
+                    aria-label="Clear your cart"
+                    title="Remove all items from your cart"
                   >
                     Clear Cart
                   </Button>
