@@ -96,7 +96,9 @@ const FeaturedStores = ({ userCity = "" }: FeaturedStoresProps) => {
     <div className="py-12 bg-neutral-50">
       <div className="container-custom">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-heading font-bold text-neutral-900">Featured Pharmacies</h2>
+          <h2 className="text-2xl font-heading font-bold text-neutral-900">
+            {userCity ? `Pharmacies in ${userCity}` : "Featured Pharmacies"}
+          </h2>
           <Link
             href="/stores"
             className="text-primary-500 hover:text-primary-600 font-medium flex items-center"

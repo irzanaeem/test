@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import StoreCard from "@/components/stores/store-card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +25,8 @@ const Stores = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("distance");
   const [filterBy, setFilterBy] = useState("all");
+  const { user } = useAuth();
+  const userCity = user?.city || "";
   
   // Extract search query from URL if present
   useEffect(() => {
@@ -36,10 +39,20 @@ const Stores = () => {
   
   // Fetch stores
   const { data: stores, isLoading, error } = useQuery<Store[]>({
-    queryKey: ['/api/stores', searchTerm],
+    queryKey: ['/api/stores', searchTerm, userCity],
     queryFn: async ({ queryKey }) => {
-      const [_, query] = queryKey;
-      const response = await fetch(`/api/stores${query ? `?query=${encodeURIComponent(query)}` : ''}`);
+      const [_, query, city] = queryKey as [string, string, string];
+      let url = '/api/stores';
+      
+      // Add query parameters if they exist
+      const params = new URLSearchParams();
+      if (query) params.append('query', query);
+      if (city) params.append('city', city);
+      
+      const queryString = params.toString();
+      if (queryString) url += `?${queryString}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch stores');
       }
@@ -93,13 +106,18 @@ const Stores = () => {
   return (
     <>
       <Helmet>
-        <title>Nearby Pharmacies - MediFind</title>
-        <meta name="description" content="Find pharmacies near you that stock the medications you need. Browse local stores, check availability, and place orders for pickup." />
+        <title>{userCity ? `Pharmacies in ${userCity}` : "Nearby Pharmacies"} - E Pharma</title>
+        <meta name="description" content={userCity 
+          ? `Find pharmacies in ${userCity} that stock the medications you need. Browse local stores, check availability, and place orders for pickup.`
+          : "Find pharmacies near you that stock the medications you need. Browse local stores, check availability, and place orders for pickup."} 
+        />
       </Helmet>
       
       <div className="bg-primary-500 py-6">
         <div className="container-custom">
-          <h1 className="text-2xl font-heading font-bold text-white">Nearby Pharmacies</h1>
+          <h1 className="text-2xl font-heading font-bold text-white">
+            {userCity ? `Pharmacies in ${userCity}` : "Nearby Pharmacies"}
+          </h1>
         </div>
       </div>
       

@@ -127,10 +127,10 @@ const AuthPage = () => {
   return (
     <>
       <Helmet>
-        <title>{activeTab === "login" ? "Sign In" : "Create Account"} - MediFind</title>
+        <title>{activeTab === "login" ? "Sign In" : "Create Account"} - E Pharma</title>
         <meta 
           name="description" 
-          content="Sign in to MediFind to find medications, check availability, and order from local pharmacies in Pakistan." 
+          content="Sign in to E Pharma to find medications, check availability, and order from local pharmacies in Pakistan." 
         />
       </Helmet>
       
@@ -259,7 +259,7 @@ const AuthPage = () => {
                     <CardHeader>
                       <CardTitle>Create a new account</CardTitle>
                       <CardDescription>
-                        Fill in your details to register for MediFind
+                        Fill in your details to register for E Pharma
                       </CardDescription>
                     </CardHeader>
                     <CardContent>

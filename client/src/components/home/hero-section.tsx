@@ -22,10 +22,14 @@ const HeroSection = ({ userCity = "" }: HeroSectionProps) => {
         <div className="md:flex md:items-center md:justify-between">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-white mb-4">
-              Find medications at your local pharmacies
+              {userCity 
+                ? `Find medications in ${userCity}` 
+                : "Find medications at your local pharmacies"}
             </h1>
             <p className="text-primary-100 text-lg mb-8">
-              Search for medications, check availability, and order directly from nearby stores.
+              {userCity 
+                ? `Search for medications, check availability, and order directly from stores in ${userCity}.`
+                : "Search for medications, check availability, and order directly from nearby stores."}
             </p>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="p-4">
