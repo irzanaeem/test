@@ -1,31 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import CartItem from "@/components/cart/cart-item";
-import CheckoutForm from "@/components/cart/checkout-form";
-import { formatCurrency } from "@/lib/utils";
+import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-
-interface CartItemType {
-  id: number;
-  name: string;
-  dosage: string;
-  price: number;
-  imageUrl: string;
-  quantity: number;
-  storeId: number;
-  storeName: string;
-}
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { MinusIcon, PlusIcon, ShoppingCart, Trash2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface CheckoutFormData {
   fullName: string;
@@ -36,274 +25,380 @@ interface CheckoutFormData {
 }
 
 const CartPage = () => {
+  const { toast } = useToast();
+  // Use the setLocation function for navigation
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [cartItems, setCartItems] = useState<CartItemType[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const { items, removeItem, updateQuantity, clearCart, totalItems, totalAmount, hasItems } = useCart();
   
-  // Calculate totals
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const taxRate = 0.09; // 9% tax
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax;
-  
-  // Get cart from localStorage on component mount
-  useEffect(() => {
-    const cartJSON = localStorage.getItem('cart');
-    if (cartJSON) {
-      setCartItems(JSON.parse(cartJSON));
-    }
-  }, []);
-  
+  const [formData, setFormData] = useState<CheckoutFormData>({
+    fullName: user ? `${user.firstName} ${user.lastName}` : "",
+    phone: user?.phone || "",
+    pickupTime: "",
+    paymentMethod: "cash",
+    notes: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   // Group items by store
-  const storeGroups = cartItems.reduce((groups: Record<number, CartItemType[]>, item) => {
-    if (!groups[item.storeId]) {
-      groups[item.storeId] = [];
+  const itemsByStore = items.reduce((acc, item) => {
+    if (!acc[item.storeId]) {
+      acc[item.storeId] = {
+        storeName: item.storeName,
+        items: [],
+        total: 0
+      };
     }
-    groups[item.storeId].push(item);
-    return groups;
-  }, {});
-  
-  const storeNames = Object.entries(storeGroups).reduce((names: Record<number, string>, [storeId, items]) => {
-    names[parseInt(storeId)] = items[0].storeName;
-    return names;
-  }, {});
-  
-  const updateCartItem = (id: number, quantity: number) => {
-    const updatedItems = cartItems.map(item => 
-      item.id === id ? { ...item, quantity } : item
-    );
-    setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
-  };
-  
-  const removeCartItem = (id: number) => {
-    const updatedItems = cartItems.filter(item => item.id !== id);
-    setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
-    
-    toast({
-      title: "Item removed",
-      description: "The item has been removed from your cart.",
-    });
-  };
-  
-  const handleBackClick = () => {
-    setLocation("/stores");
-  };
-  
-  const handleContinueShopping = () => {
-    setLocation("/stores");
-  };
-  
-  const handleCheckout = async (formData: CheckoutFormData) => {
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to place an order.",
-        variant: "destructive",
-      });
-      setLocation("/login");
-      return;
-    }
-    
-    if (cartItems.length === 0) {
-      toast({
-        title: "Empty Cart",
-        description: "Your cart is empty. Please add items before checking out.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Group items by store and create orders for each store
-      const storeIds = [...new Set(cartItems.map(item => item.storeId))];
+    acc[item.storeId].items.push(item);
+    acc[item.storeId].total += item.price * item.quantity;
+    return acc;
+  }, {} as Record<number, { storeName: string; items: typeof items; total: number }>);
+
+  const checkoutMutation = useMutation({
+    mutationFn: async (storeId: number) => {
+      const storeItems = itemsByStore[storeId].items;
       
-      // For simplicity, we'll just handle the first store in the cart
-      // In a real app, you might want to handle multiple stores differently
-      const storeId = storeIds[0];
-      const storeItems = cartItems.filter(item => item.storeId === storeId);
-      
-      // Prepare order data
       const orderData = {
-        order: {
-          storeId,
-          totalAmount: total,
-          status: "pending",
-          pickupTime: formData.pickupTime,
-          notes: formData.notes || undefined,
-        },
-        items: storeItems.map(item => ({
-          medicationId: item.id,
-          quantity: item.quantity,
-          price: item.price,
-        })),
+        storeId,
+        totalAmount: itemsByStore[storeId].total,
+        pickupTime: formData.pickupTime,
+        notes: formData.notes
       };
       
-      // Submit order
-      const response = await apiRequest("POST", "/api/orders", orderData);
-      const newOrder = await response.json();
+      const response = await apiRequest("POST", "/api/orders", {
+        order: orderData,
+        items: storeItems.map(item => ({
+          medicationId: item.medicationId,
+          quantity: item.quantity,
+          price: item.price
+        }))
+      });
       
-      // Clear cart
-      localStorage.removeItem('cart');
-      setCartItems([]);
-      
-      // Show success modal
-      setOrderId(newOrder.id);
-      setSuccessModalOpen(true);
-    } catch (error) {
-      console.error("Checkout error:", error);
+      return await response.json();
+    },
+    onSuccess: (data) => {
       toast({
-        title: "Checkout Failed",
-        description: "An error occurred while processing your order. Please try again.",
+        title: "Order placed successfully",
+        description: `Your order #${data.id} has been placed and the pharmacy has been notified.`,
+      });
+      
+      // Remove ordered items from cart
+      items.forEach(item => {
+        if (item.storeId === data.storeId) {
+          removeItem(item.medicationId);
+        }
+      });
+      
+      // Refresh notifications and orders
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      
+      // Redirect to orders page
+      setLocation("/orders");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Order failed",
+        description: error.message || "There was an error placing your order. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleCheckout = async (storeId: number) => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to place an order.",
+        variant: "destructive",
+      });
+      setLocation("/auth");
+      return;
+    }
+    
+    if (!formData.pickupTime) {
+      toast({
+        title: "Pickup time required",
+        description: "Please select when you'd like to pick up your order.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    checkoutMutation.mutate(storeId);
   };
-  
-  const closeSuccessModal = () => {
-    setSuccessModalOpen(false);
+
+  // Generate time slots for today and tomorrow
+  const generateTimeSlots = () => {
+    const slots = [];
+    const now = new Date();
+    const today = new Date().toLocaleDateString();
+    const tomorrow = new Date(now.setDate(now.getDate() + 1)).toLocaleDateString();
+    
+    // Generate time slots from 9 AM to 6 PM
+    for (let hour = 9; hour <= 18; hour++) {
+      const time = `${hour}:00`;
+      slots.push(`${today} ${time}`);
+      slots.push(`${tomorrow} ${time}`);
+    }
+    
+    return slots;
   };
-  
-  const goToOrders = () => {
-    setSuccessModalOpen(false);
-    setLocation("/orders");
-  };
-  
-  const goToHome = () => {
-    setSuccessModalOpen(false);
-    setLocation("/");
-  };
+
+  if (!hasItems) {
+    return (
+      <>
+        <Helmet>
+          <title>Your Cart - E Pharma</title>
+          <meta 
+            name="description" 
+            content="View and manage items in your cart at E Pharma, your online medication delivery service."
+          />
+        </Helmet>
+        <div className="container mx-auto py-10">
+          <h1 className="text-3xl font-bold mb-6">Your Cart</h1>
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div className="mb-4">
+              <ShoppingCart className="h-12 w-12 mx-auto text-gray-400" />
+            </div>
+            <h2 className="text-xl font-semibold mb-3">Your cart is empty</h2>
+            <p className="text-gray-600 mb-6">Add some medications to your cart to get started.</p>
+            <Button onClick={() => setLocation("/")}>Browse Medications</Button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
       <Helmet>
-        <title>Your Cart - MediFind</title>
-        <meta name="description" content="Review your selected medications, adjust quantities, and complete your order for pickup at your local pharmacy." />
+        <title>Your Cart - E Pharma</title>
+        <meta 
+          name="description" 
+          content="View and manage items in your cart at E Pharma, your online medication delivery service."
+        />
       </Helmet>
-      
-      <div className="bg-primary-500 py-6">
-        <div className="container-custom">
-          <div className="flex items-center">
-            <button 
-              type="button" 
-              className="mr-4 text-white" 
-              onClick={handleBackClick}
-            >
-              <i className="ri-arrow-left-line text-xl"></i>
-            </button>
-            <h1 className="text-2xl font-heading font-bold text-white">Your Cart</h1>
-          </div>
-        </div>
-      </div>
-      
-      <div className="container-custom max-w-4xl py-6">
-        {cartItems.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6 p-6 text-center">
-            <i className="ri-shopping-cart-line text-5xl text-neutral-300 mb-4"></i>
-            <h2 className="text-xl font-heading font-semibold text-neutral-900 mb-2">Your Cart is Empty</h2>
-            <p className="text-neutral-600 mb-6">Add medications from pharmacies to get started.</p>
-            <Button onClick={handleContinueShopping}>
-              Browse Pharmacies
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-              {Object.entries(storeGroups).map(([storeIdStr, items]) => (
-                <div key={storeIdStr}>
-                  <div className="border-b border-neutral-200 p-6">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-heading font-semibold text-neutral-900">Your Items</h2>
-                      <p className="text-neutral-600">From: {storeNames[parseInt(storeIdStr)]}</p>
-                    </div>
+      <div className="container mx-auto py-10">
+        <h1 className="text-3xl font-bold mb-6">Your Cart ({totalItems} items)</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            {Object.entries(itemsByStore).map(([storeId, { storeName, items, total }]) => (
+              <Card key={storeId} className="mb-6">
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">{storeName}</h2>
+                    <span className="text-gray-600 text-sm">
+                      Store subtotal: {formatCurrency(total)}
+                    </span>
                   </div>
-                  <div className="divide-y divide-neutral-200">
+                  
+                  <div className="space-y-4">
                     {items.map((item) => (
-                      <CartItem
-                        key={item.id}
-                        item={item}
-                        onUpdateQuantity={updateCartItem}
-                        onRemove={removeCartItem}
-                      />
+                      <div key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border rounded-md bg-gray-50">
+                        <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                          <div className="h-16 w-16 rounded-md bg-white flex items-center justify-center border overflow-hidden">
+                            {item.imageUrl ? (
+                              <img 
+                                src={item.imageUrl} 
+                                alt={item.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-gray-100 flex items-center justify-center">
+                                <i className="ri-capsule-line text-2xl text-gray-400"></i>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-medium">{item.name}</h3>
+                            <p className="text-sm text-gray-600">{item.dosage}</p>
+                            <p className="text-sm font-medium">{formatCurrency(item.price)} each</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                          <div className="flex items-center justify-between border rounded-md">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 text-gray-600"
+                              onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}
+                            >
+                              <MinusIcon className="h-4 w-4" />
+                            </Button>
+                            
+                            <div className="w-8 text-center">{item.quantity}</div>
+                            
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 text-gray-600"
+                              onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}
+                            >
+                              <PlusIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500"
+                            onClick={() => removeItem(item.medicationId)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          
+                          <span className="font-medium ml-3">
+                            {formatCurrency(item.price * item.quantity)}
+                          </span>
+                        </div>
+                      </div>
                     ))}
                   </div>
+                  
+                  <div className="mt-6">
+                    <h3 className="font-semibold mb-3">Pickup Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label htmlFor={`fullName-${storeId}`}>Full Name</Label>
+                        <Input
+                          id={`fullName-${storeId}`}
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleChange}
+                          placeholder="Your full name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`phone-${storeId}`}>Phone Number</Label>
+                        <Input
+                          id={`phone-${storeId}`}
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="Your phone number"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`pickupTime-${storeId}`}>Pickup Time</Label>
+                        <Select
+                          value={formData.pickupTime}
+                          onValueChange={(value) => handleSelectChange("pickupTime", value)}
+                        >
+                          <SelectTrigger id={`pickupTime-${storeId}`}>
+                            <SelectValue placeholder="Select pickup time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {generateTimeSlots().map((slot) => (
+                              <SelectItem key={slot} value={slot}>
+                                {slot}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor={`paymentMethod-${storeId}`}>Payment Method</Label>
+                        <Select
+                          value={formData.paymentMethod}
+                          onValueChange={(value) => handleSelectChange("paymentMethod", value)}
+                        >
+                          <SelectTrigger id={`paymentMethod-${storeId}`}>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash on Pickup</SelectItem>
+                            <SelectItem value="card">Card on Pickup</SelectItem>
+                            <SelectItem value="easypaisa">EasyPaisa</SelectItem>
+                            <SelectItem value="jazzcash">JazzCash</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <Label htmlFor={`notes-${storeId}`}>Additional Notes</Label>
+                      <Textarea
+                        id={`notes-${storeId}`}
+                        name="notes"
+                        value={formData.notes}
+                        onChange={handleChange}
+                        placeholder="Any special instructions for your order"
+                        className="resize-none"
+                      />
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button
+                        variant="default"
+                        className="mt-4"
+                        onClick={() => handleCheckout(Number(storeId))}
+                        disabled={checkoutMutation.isPending}
+                      >
+                        {checkoutMutation.isPending ? "Processing..." : "Place Order"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(totalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee</span>
+                    <span>Free</span>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="flex justify-between font-bold">
+                    <span>Total</span>
+                    <span>{formatCurrency(totalAmount)}</span>
+                  </div>
                 </div>
-              ))}
-              <div className="p-6 bg-neutral-50 border-t border-neutral-200">
-                <div className="space-y-4">
-                  <div className="flex justify-between text-neutral-700">
-                    <p>Subtotal</p>
-                    <p>{formatCurrency(subtotal)}</p>
-                  </div>
-                  <div className="flex justify-between text-neutral-700">
-                    <p>Tax</p>
-                    <p>{formatCurrency(tax)}</p>
-                  </div>
-                  <div className="border-t border-neutral-200 pt-4 flex justify-between font-semibold">
-                    <p>Total</p>
-                    <p>{formatCurrency(total)}</p>
-                  </div>
+                
+                <div className="mt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setLocation("/")}
+                  >
+                    Continue Shopping
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    className="w-full mt-3 text-red-500"
+                    onClick={clearCart}
+                  >
+                    Clear Cart
+                  </Button>
                 </div>
-              </div>
-            </div>
-            
-            <CheckoutForm
-              onSubmit={handleCheckout}
-              isLoading={isSubmitting}
-            />
-            
-            <div className="flex flex-col space-y-4">
-              <Button 
-                onClick={handleContinueShopping}
-                variant="outline"
-                className="py-6"
-              >
-                Continue Shopping
-              </Button>
-            </div>
-          </>
-        )}
-        
-        <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <div className="mx-auto mb-4 bg-green-100 rounded-full w-16 h-16 flex items-center justify-center">
-                <i className="ri-check-line text-green-500 text-3xl"></i>
-              </div>
-              <DialogTitle className="text-center">Order Placed Successfully!</DialogTitle>
-              <DialogDescription className="text-center">
-                Your order has been placed and will be ready for pickup at your selected time.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="bg-neutral-50 p-4 rounded-md mb-6 text-left">
-              <div className="flex justify-between mb-2">
-                <span className="text-neutral-700 font-medium">Order Number:</span>
-                <span className="text-neutral-900">#{orderId?.toString().padStart(5, '0')}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-neutral-700 font-medium">Pharmacy:</span>
-                <span className="text-neutral-900">{cartItems[0]?.storeName}</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Button className="w-full" onClick={goToOrders}>
-                View My Orders
-              </Button>
-              <Button variant="outline" className="w-full" onClick={goToHome}>
-                Return to Home
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </>
   );
