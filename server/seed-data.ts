@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { eq } from "drizzle-orm";
 import {
   users,
   stores,
@@ -170,136 +171,45 @@ const faisalabadPharmacies = [
   },
 ];
 
-// Function to seed data
+// Function to update medication images
 export async function seedData() {
-  console.log("Starting data seeding...");
+  console.log("Starting data update for images...");
 
   try {
-    // Create store owner accounts
-    const storeOwners = [];
-
-    // Lahore store owners
-    for (let i = 0; i < lahorePharmacies.length; i++) {
-      const storeOwner = await db.insert(users).values({
-        username: `lahore_store_${i + 1}`,
-        password: await hashPassword("password123"),
-        firstName: `Store`,
-        lastName: `Owner ${i + 1}`,
-        email: `lahore_store_${i + 1}@example.com`,
-        phone: lahorePharmacies[i].phone,
-        address: lahorePharmacies[i].address,
-        city: "Lahore",
-        isStore: true,
-      }).returning();
-      
-      storeOwners.push(storeOwner[0]);
+    // Update medication images
+    console.log("Updating medication images...");
+    for (const med of medicationsList) {
+      await db.update(medications)
+        .set({ imageUrl: med.imageUrl })
+        .where(sql`${medications.name} = ${med.name}`)
+        .execute();
     }
+    console.log(`Updated ${medicationsList.length} medication images.`);
 
-    // Faisalabad store owners
-    for (let i = 0; i < faisalabadPharmacies.length; i++) {
-      const storeOwner = await db.insert(users).values({
-        username: `faisalabad_store_${i + 1}`,
-        password: await hashPassword("password123"),
-        firstName: `Store`,
-        lastName: `Owner ${i + faisalabadPharmacies.length + 1}`,
-        email: `faisalabad_store_${i + 1}@example.com`,
-        phone: faisalabadPharmacies[i].phone,
-        address: faisalabadPharmacies[i].address,
-        city: "Faisalabad",
-        isStore: true,
-      }).returning();
-      
-      storeOwners.push(storeOwner[0]);
-    }
-
-    console.log(`Created ${storeOwners.length} store owner accounts.`);
-
-    // Create stores
-    const createdStores = [];
-
-    // Create Lahore pharmacies
+    // Update pharmacy images
+    console.log("Updating Lahore pharmacy images...");
     for (let i = 0; i < lahorePharmacies.length; i++) {
       const pharmacy = lahorePharmacies[i];
-      const store = await db.insert(stores).values({
-        name: pharmacy.name,
-        address: pharmacy.address,
-        city: pharmacy.city,
-        zipCode: pharmacy.zipCode,
-        phone: pharmacy.phone,
-        email: `info@${pharmacy.name.toLowerCase().replace(/\s+/g, '')}.com`, // Generate email from name
-        openingHours: pharmacy.openingHours,
-        description: pharmacy.description,
-        imageUrl: pharmacy.imageUrl,
-        rating: pharmacy.rating,
-        reviewCount: pharmacy.reviewCount,
-        userId: storeOwners[i].id,
-      }).returning();
-      
-      createdStores.push(store[0]);
+      await db.update(stores)
+        .set({ imageUrl: pharmacy.imageUrl })
+        .where(sql`${stores.name} = ${pharmacy.name}`)
+        .execute();
     }
-
-    // Create Faisalabad pharmacies
+    
+    console.log("Updating Faisalabad pharmacy images...");
     for (let i = 0; i < faisalabadPharmacies.length; i++) {
       const pharmacy = faisalabadPharmacies[i];
-      const store = await db.insert(stores).values({
-        name: pharmacy.name,
-        address: pharmacy.address,
-        city: pharmacy.city,
-        zipCode: pharmacy.zipCode,
-        phone: pharmacy.phone,
-        email: `info@${pharmacy.name.toLowerCase().replace(/\s+/g, '')}.com`, // Generate email from name
-        openingHours: pharmacy.openingHours,
-        description: pharmacy.description,
-        imageUrl: pharmacy.imageUrl,
-        rating: pharmacy.rating,
-        reviewCount: pharmacy.reviewCount,
-        userId: storeOwners[i + lahorePharmacies.length].id,
-      }).returning();
-      
-      createdStores.push(store[0]);
+      await db.update(stores)
+        .set({ imageUrl: pharmacy.imageUrl })
+        .where(sql`${stores.name} = ${pharmacy.name}`)
+        .execute();
     }
-
-    console.log(`Created ${createdStores.length} pharmacies.`);
-
-    // Create medications
-    const createdMedications = [];
-    for (const med of medicationsList) {
-      const medication = await db.insert(medications).values(med).returning();
-      createdMedications.push(medication[0]);
-    }
-
-    console.log(`Created ${createdMedications.length} medications.`);
-
-    // Create store inventory
-    let totalInventoryItems = 0;
-    for (const store of createdStores) {
-      // Each store will have a random selection of medications
-      const numMedicationsForStore = Math.floor(Math.random() * (createdMedications.length - 3)) + 3; // At least 3 medications per store
-      const shuffledMeds = [...createdMedications].sort(() => 0.5 - Math.random());
-      const selectedMeds = shuffledMeds.slice(0, numMedicationsForStore);
-      
-      for (const med of selectedMeds) {
-        const quantity = Math.floor(Math.random() * 100) + 10; // Random quantity between 10-110
-        const priceAdjustment = (Math.random() * 0.4) - 0.2; // Random price adjustment between -20% and +20%
-        const price = med.price * (1 + priceAdjustment);
-        
-        await db.insert(storeInventory).values({
-          storeId: store.id,
-          medicationId: med.id,
-          inStock: true,
-          quantity,
-          price: parseFloat(price.toFixed(2)), // Round to 2 decimal places
-        });
-        
-        totalInventoryItems++;
-      }
-    }
-
-    console.log(`Created ${totalInventoryItems} inventory items.`);
-    console.log("Data seeding completed successfully!");
+    
+    console.log(`Updated ${lahorePharmacies.length + faisalabadPharmacies.length} pharmacy images.`);
+    console.log("Image updates completed successfully!");
 
   } catch (error) {
-    console.error("Error seeding data:", error);
+    console.error("Error updating images:", error);
     throw error;
   }
 }
