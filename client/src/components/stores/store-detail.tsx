@@ -56,11 +56,17 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
       <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div className="md:flex">
           <div className="md:w-1/2">
-            <img
-              src={store.imageUrl}
-              alt={`${store.name} interior`}
-              className="w-full h-64 md:h-full object-cover"
-            />
+            {store.imageUrl ? (
+              <img
+                src={store.imageUrl}
+                alt={`${store.name} interior`}
+                className="w-full h-64 md:h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-64 md:h-full bg-gray-200 flex items-center justify-center">
+                <i className="ri-store-3-line text-5xl text-gray-400"></i>
+              </div>
+            )}
           </div>
           <div className="md:w-1/2 p-6">
             <div className="flex items-center justify-between mb-4">
@@ -144,11 +150,17 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
               className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden p-4 hover:shadow-md transition-shadow duration-300"
             >
               <div className="flex items-start">
-                <img
-                  src={medication.imageUrl}
-                  alt={medication.name}
-                  className="w-16 h-16 object-cover rounded-md mr-4"
-                />
+                {medication.imageUrl ? (
+                  <img
+                    src={medication.imageUrl}
+                    alt={medication.name}
+                    className="w-16 h-16 object-cover rounded-md mr-4"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-gray-200 flex items-center justify-center rounded-md mr-4">
+                    <i className="ri-capsule-line text-2xl text-gray-400"></i>
+                  </div>
+                )}
                 <div className="flex-1">
                   <h3 className="font-heading font-semibold text-neutral-900">{medication.name}</h3>
                   <p className="text-sm text-neutral-500 mb-2">{medication.dosage}</p>

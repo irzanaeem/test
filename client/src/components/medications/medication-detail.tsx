@@ -76,11 +76,17 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
       <div className="p-6">
         <div className="flex flex-col md:flex-row md:items-center md:space-x-6 mb-6">
           <div className="mb-4 md:mb-0">
-            <img
-              src={medication.imageUrl}
-              alt={`${medication.name} ${medication.dosage}`}
-              className="w-32 h-32 md:w-48 md:h-48 object-cover rounded-lg"
-            />
+            {medication.imageUrl ? (
+              <img
+                src={medication.imageUrl}
+                alt={`${medication.name} ${medication.dosage}`}
+                className="w-32 h-32 md:w-48 md:h-48 object-cover rounded-lg"
+              />
+            ) : (
+              <div className="w-32 h-32 md:w-48 md:h-48 bg-gray-200 flex items-center justify-center rounded-lg">
+                <i className="ri-capsule-line text-5xl text-gray-400"></i>
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-heading font-semibold text-neutral-900 mb-2">

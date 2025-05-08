@@ -101,6 +101,22 @@ const Navbar = () => {
               >
                 Orders
               </Link>
+              {user?.isStore && (
+                <>
+                  <Link 
+                    href="/store-dashboard" 
+                    className={`${isActive('/store-dashboard') ? 'text-primary-500 border-primary-500 border-b-2' : 'text-neutral-500 hover:text-primary-500'} px-1 pt-1 font-medium`}
+                  >
+                    My Pharmacy
+                  </Link>
+                  <Link 
+                    href="/create-pharmacy" 
+                    className={`${isActive('/create-pharmacy') ? 'text-primary-500 border-primary-500 border-b-2' : 'text-neutral-500 hover:text-primary-500'} px-1 pt-1 font-medium`}
+                  >
+                    Create Pharmacy
+                  </Link>
+                </>
+              )}
             </div>
             
             <div className="flex items-center ml-4 md:ml-6">
