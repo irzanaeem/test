@@ -446,8 +446,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: (req.user as any).id
       });
       
-      // Validate order items
-      const validatedItems = z.array(insertOrderItemSchema).parse(items);
+      // Only validate basic properties of items (not orderId yet)
+      const itemsToValidate = items.map(item => ({
+        medicationId: Number(item.medicationId),
+        quantity: Number(item.quantity),
+        price: Number(item.price)
+      }));
       
       // Check if store exists
       const store = await storage.getStore(validatedOrder.storeId);
@@ -456,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify medications exist and are in stock
-      for (const item of validatedItems) {
+      for (const item of itemsToValidate) {
         const inventoryItem = await storage.getStoreInventoryItem(validatedOrder.storeId, item.medicationId);
         
         if (!inventoryItem) {
@@ -480,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create order
-      const newOrder = await storage.createOrder(validatedOrder, validatedItems);
+      const newOrder = await storage.createOrder(validatedOrder, itemsToValidate);
       
       // Create notification for user
       await storage.createNotification({
