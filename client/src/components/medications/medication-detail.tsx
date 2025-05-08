@@ -125,7 +125,7 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                   </button>
                 </div>
                 <button
-                  className="ml-4 px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md font-medium transition-colors flex items-center"
+                  className="ml-4 px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md font-medium transition-colors flex items-center shadow-md border border-primary-600"
                   onClick={handleAddToCart}
                 >
                   <i className="ri-shopping-cart-2-line mr-2"></i>
@@ -133,7 +133,7 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                 </button>
                 <a 
                   href="/cart"
-                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center"
+                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center shadow-md border border-accent-600"
                 >
                   <i className="ri-shopping-cart-2-fill mr-2"></i>
                   View Cart
@@ -150,7 +150,7 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                 </button>
                 <a 
                   href="/cart"
-                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center"
+                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center shadow-md border border-accent-600"
                 >
                   <i className="ri-shopping-cart-2-fill mr-2"></i>
                   View Cart

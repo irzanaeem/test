@@ -306,7 +306,10 @@ const StoreDashboard = () => {
         <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
           <h1 className="text-2xl font-semibold mb-4">No Pharmacy Found</h1>
           <p className="mb-6">You don't have any pharmacy registered yet. Create your first pharmacy to manage your business on E Pharma.</p>
-          <Button onClick={() => navigate("/create-pharmacy")}>
+          <Button 
+            onClick={() => navigate("/create-pharmacy")}
+            className="shadow-md border border-primary-600"
+          >
             Create Your Pharmacy
           </Button>
         </div>
