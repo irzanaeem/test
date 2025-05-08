@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeroSectionProps {
   userCity?: string;
@@ -8,12 +9,17 @@ interface HeroSectionProps {
 const HeroSection = ({ userCity = "" }: HeroSectionProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       setLocation(`/stores?search=${encodeURIComponent(searchQuery)}`);
     }
+  };
+  
+  const navigateToCreatePharmacy = () => {
+    setLocation("/create-pharmacy");
   };
 
   return (
@@ -55,16 +61,40 @@ const HeroSection = ({ userCity = "" }: HeroSectionProps) => {
                     </button>
                   </div>
                 </form>
+                
+                {user?.isStore && (
+                  <div className="mt-4 pt-4 border-t border-neutral-200">
+                    <button
+                      onClick={navigateToCreatePharmacy}
+                      className="w-full bg-accent-500 border border-transparent rounded-md py-3 px-4 flex items-center justify-center text-base font-medium text-white hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-500"
+                    >
+                      <i className="ri-store-3-line mr-2"></i> Create Your Pharmacy
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          <div className="md:w-1/2 flex justify-center mt-10 md:mt-0">
+          <div className="md:w-1/2 flex flex-col justify-center mt-10 md:mt-0">
             {/* Pharmacy storefront image */}
             <img
               src="https://pixabay.com/get/g9567d1a156ac0d7d855ee9c5a046e85c768ad7c39661971566f4a88a311d47ca98a22454d716534df3e13a14c1e1eeebf25a852e8e0779faf2f9a498aa606323_1280.jpg"
               alt="Modern pharmacy storefront"
               className="rounded-lg shadow-xl max-w-full h-auto"
             />
+            
+            {user?.isStore && (
+              <div className="mt-4 bg-white rounded-lg shadow-md p-4 text-center">
+                <h3 className="text-lg font-semibold mb-2">Pharmacy Owner?</h3>
+                <p className="text-neutral-600 mb-3">Create and manage your pharmacy store to sell medications to customers in your city.</p>
+                <button
+                  onClick={navigateToCreatePharmacy}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-500 hover:bg-accent-600"
+                >
+                  <i className="ri-add-circle-line mr-2"></i> Make Pharmacy
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
