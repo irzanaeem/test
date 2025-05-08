@@ -106,8 +106,10 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                   <button
                     className="px-3 py-1 border-r border-neutral-300 text-neutral-600 hover:bg-neutral-100"
                     onClick={decreaseQuantity}
+                    aria-label="Decrease quantity"
+                    title="Decrease quantity"
                   >
-                    -
+                    <span aria-hidden="true">-</span>
                   </button>
                   <input
                     type="number"
@@ -120,8 +122,10 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                   <button
                     className="px-3 py-1 border-l border-neutral-300 text-neutral-600 hover:bg-neutral-100"
                     onClick={increaseQuantity}
+                    aria-label="Increase quantity"
+                    title="Increase quantity"
                   >
-                    +
+                    <span aria-hidden="true">+</span>
                   </button>
                 </div>
                 <button

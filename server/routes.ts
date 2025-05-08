@@ -447,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Only validate basic properties of items (not orderId yet)
-      const itemsToValidate = items.map(item => ({
+      const itemsToValidate = items.map((item: { medicationId: number | string, quantity: number | string, price: number | string }) => ({
         medicationId: Number(item.medicationId),
         quantity: Number(item.quantity),
         price: Number(item.price)
