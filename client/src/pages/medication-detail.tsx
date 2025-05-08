@@ -80,7 +80,16 @@ const MedicationDetailPage = () => {
     
     // Use the cart hook to add the item
     addItem({
-      ...medication,
+      id: medication.id,
+      name: medication.name,
+      description: medication.description || '',
+      dosage: medication.dosage || null,
+      manufacturer: medication.manufacturer || null,
+      category: medication.category || null,
+      price: medication.price,
+      imageUrl: medication.imageUrl || null,
+      sideEffects: medication.sideEffects || null,
+      usageInstructions: medication.usageInstructions || null,
       storeId: storeInventoryItem.storeId,
       storeName: storeInventoryItem.store?.name || "Store",
       inventoryPrice: storeInventoryItem.price || medication.price

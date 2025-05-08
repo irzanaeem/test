@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/use-cart";
 import StoreDetail from "@/components/stores/store-detail";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,14 @@ interface Store {
 interface Medication {
   id: number;
   name: string;
+  description?: string;
   dosage: string;
+  manufacturer?: string;
+  category?: string;
   price: number;
   imageUrl: string;
+  sideEffects?: string;
+  usageInstructions?: string;
   inStock: boolean;
   quantity: number;
 }
@@ -45,6 +51,7 @@ const StoreDetailPage = () => {
   const storeId = parseInt(params.id);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { addItem } = useCart();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredInventory, setFilteredInventory] = useState<Medication[]>([]);
   
@@ -95,39 +102,18 @@ const StoreDetailPage = () => {
   };
   
   const addToCart = (medication: Medication) => {
-    // Get existing cart from localStorage
-    const cartJSON = localStorage.getItem('cart');
-    let cart = cartJSON ? JSON.parse(cartJSON) : [];
-    
-    // Check if this item is already in cart
-    const existingItemIndex = cart.findIndex((item: any) => 
-      item.id === medication.id && item.storeId === storeId
-    );
-    
-    if (existingItemIndex >= 0) {
-      // Update quantity
-      cart[existingItemIndex].quantity += 1;
-    } else {
-      // Add new item
-      cart.push({
-        id: medication.id,
-        name: medication.name,
-        dosage: medication.dosage,
-        price: medication.price,
-        imageUrl: medication.imageUrl,
-        quantity: 1,
-        storeId: storeId,
-        storeName: store?.name || ""
-      });
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    toast({
-      title: "Added to cart",
-      description: `${medication.name} has been added to your cart.`,
-    });
+    // Use the cart hook to add the item
+    addItem({
+      ...medication,
+      description: medication.description || '',
+      category: medication.category || null,
+      manufacturer: medication.manufacturer || null,
+      sideEffects: medication.sideEffects || null,
+      usageInstructions: medication.usageInstructions || null,
+      storeId: storeId,
+      storeName: store?.name || "Store",
+      inventoryPrice: medication.price
+    }, 1);
   };
   
   const isLoading = isLoadingStore || isLoadingInventory;
