@@ -87,8 +87,10 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
                 <button
                   className="px-3 py-1 border-r border-neutral-300 text-neutral-600 hover:bg-neutral-100"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  aria-label="Decrease quantity"
+                  title="Decrease quantity"
                 >
-                  -
+                  <span aria-hidden="true">-</span>
                 </button>
                 <input
                   type="number"
@@ -104,8 +106,10 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
                 <button
                   className="px-3 py-1 border-l border-neutral-300 text-neutral-600 hover:bg-neutral-100"
                   onClick={() => setQuantity(quantity + 1)}
+                  aria-label="Increase quantity"
+                  title="Increase quantity"
                 >
-                  +
+                  <span aria-hidden="true">+</span>
                 </button>
               </div>
             </div>

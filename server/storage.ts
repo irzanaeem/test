@@ -329,15 +329,17 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async createOrder(orderData: InsertOrder, itemsData: InsertOrderItem[]): Promise<Order> {
+  async createOrder(orderData: InsertOrder, itemsData: any[]): Promise<Order> {
     // Insert order first
     const [order] = await db.insert(orders).values(orderData).returning();
 
-    // Insert order items
+    // Insert order items with proper type handling
     for (const item of itemsData) {
       await db.insert(orderItems).values({
-        ...item,
-        orderId: order.id
+        medicationId: Number(item.medicationId),
+        quantity: Number(item.quantity),
+        price: Number(item.price),
+        orderId: Number(order.id)
       });
     }
 
