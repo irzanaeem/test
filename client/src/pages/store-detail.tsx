@@ -101,7 +101,7 @@ const StoreDetailPage = () => {
     setLocation("/stores");
   };
   
-  const addToCart = (medication: Medication) => {
+  const addToCart = (medication: Medication, quantity: number = 1) => {
     // Use the cart hook to add the item
     addItem({
       ...medication,
@@ -113,7 +113,7 @@ const StoreDetailPage = () => {
       storeId: storeId,
       storeName: store?.name || "Store",
       inventoryPrice: medication.price
-    }, 1);
+    }, quantity);
   };
   
   const isLoading = isLoadingStore || isLoadingInventory;
