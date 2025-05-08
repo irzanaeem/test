@@ -1,9 +1,15 @@
-const HowItWorks = () => {
+interface HowItWorksProps {
+  userCity?: string;
+}
+
+const HowItWorks = ({ userCity = "" }: HowItWorksProps) => {
   const steps = [
     {
       icon: "ri-store-2-line",
       title: "Find Local Stores",
-      description: "Discover pharmacies near you with the medications you need."
+      description: userCity 
+        ? `Discover pharmacies in ${userCity} with the medications you need.`
+        : "Discover pharmacies near you with the medications you need."
     },
     {
       icon: "ri-medicine-bottle-line",
@@ -21,8 +27,12 @@ const HowItWorks = () => {
     <div className="py-12 bg-white">
       <div className="container-custom">
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-heading font-bold text-neutral-900">How MediFind Works</h2>
-          <p className="mt-4 text-lg text-neutral-600">Find and order medications in three simple steps</p>
+          <h2 className="text-3xl font-heading font-bold text-neutral-900">How E Pharma Works</h2>
+          <p className="mt-4 text-lg text-neutral-600">
+            {userCity 
+              ? `Find and order medications in ${userCity} in three simple steps`
+              : "Find and order medications in three simple steps"}
+          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {steps.map((step, index) => (

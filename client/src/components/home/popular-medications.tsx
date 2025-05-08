@@ -9,7 +9,11 @@ interface Medication {
   imageUrl: string;
 }
 
-const PopularMedications = () => {
+interface PopularMedicationsProps {
+  userCity?: string;
+}
+
+const PopularMedications = ({ userCity = "" }: PopularMedicationsProps) => {
   const [, setLocation] = useLocation();
   
   const { data: medications, isLoading, error } = useQuery<Medication[]>({

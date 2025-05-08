@@ -13,15 +13,25 @@ const Home = () => {
   return (
     <>
       <Helmet>
-        <title>E Pharma - Find Medications at Local Pharmacies</title>
-        <meta name="description" content="Search for medications, check availability, and order directly from nearby pharmacies. E Pharma connects you with local stores to find the medications you need." />
+        <title>
+          {userCity 
+            ? `E Pharma - Find Medications in ${userCity}` 
+            : "E Pharma - Find Medications at Local Pharmacies"}
+        </title>
+        <meta 
+          name="description" 
+          content={userCity 
+            ? `Search for medications, check availability, and order directly from pharmacies in ${userCity}. E Pharma connects you with local stores to find the medications you need.`
+            : "Search for medications, check availability, and order directly from nearby pharmacies. E Pharma connects you with local stores to find the medications you need."
+          } 
+        />
       </Helmet>
       
       <main>
         <HeroSection userCity={userCity} />
-        <HowItWorks />
+        <HowItWorks userCity={userCity} />
         <FeaturedStores userCity={userCity} />
-        <ScannerFeature />
+        <ScannerFeature userCity={userCity} />
         <PopularMedications />
       </main>
     </>

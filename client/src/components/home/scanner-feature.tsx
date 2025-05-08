@@ -1,6 +1,10 @@
 import { useLocation } from "wouter";
 
-const ScannerFeature = () => {
+interface ScannerFeatureProps {
+  userCity?: string;
+}
+
+const ScannerFeature = ({ userCity = "" }: ScannerFeatureProps) => {
   const [, setLocation] = useLocation();
 
   const handleTryScanner = () => {
@@ -14,7 +18,9 @@ const ScannerFeature = () => {
           <div className="md:w-1/2 mb-10 md:mb-0 md:pr-10">
             <h2 className="text-3xl font-heading font-bold text-neutral-900 mb-4">Prescription Scanner</h2>
             <p className="text-lg text-neutral-600 mb-6">
-              Upload your prescription and our OCR technology will extract the text for you.
+              {userCity 
+                ? `Upload your prescription and our OCR technology will extract the text for you, making it easy to find medications in ${userCity}.`
+                : "Upload your prescription and our OCR technology will extract the text for you."}
             </p>
             <ul className="space-y-4">
               <li className="flex items-start">
