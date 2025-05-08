@@ -74,7 +74,8 @@ const CreatePharmacy = () => {
         formData.append("image", data.imageFile[0]);
       }
       
-      const response = await apiRequest("POST", "/api/stores", data);
+      // Make sure to send formData instead of data
+      const response = await apiRequest("POST", "/api/stores", formData, true);
       return response.json();
     },
     onSuccess: () => {

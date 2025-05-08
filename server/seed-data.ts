@@ -22,7 +22,7 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
-// Sample medications
+// Sample medications with real images
 const medicationsList = [
   {
     name: "Paracetamol",
@@ -31,7 +31,7 @@ const medicationsList = [
     manufacturer: "GSK",
     category: "Pain Relief",
     price: 5.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Paracetamol",
+    imageUrl: "https://i.ibb.co/CVd2GY8/paracetamol.jpg",
     sideEffects: "Nausea, stomach pain, loss of appetite",
     usageInstructions: "Take 1-2 tablets every 4-6 hours as needed",
   },
@@ -42,7 +42,7 @@ const medicationsList = [
     manufacturer: "Pfizer",
     category: "Antibiotics",
     price: 12.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Amoxicillin",
+    imageUrl: "https://i.ibb.co/5FC7N1x/amoxicillin.jpg",
     sideEffects: "Diarrhea, stomach upset, vomiting",
     usageInstructions: "Take 1 capsule every 8 hours with food",
   },
@@ -53,7 +53,7 @@ const medicationsList = [
     manufacturer: "Johnson & Johnson",
     category: "Allergy",
     price: 8.49,
-    imageUrl: "https://via.placeholder.com/200x200?text=Cetirizine",
+    imageUrl: "https://i.ibb.co/2qPbZ0C/cetirizine.jpg",
     sideEffects: "Drowsiness, dry mouth, headache",
     usageInstructions: "Take 1 tablet daily with or without food",
   },
@@ -64,7 +64,7 @@ const medicationsList = [
     manufacturer: "AstraZeneca",
     category: "Digestive Health",
     price: 14.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Omeprazole",
+    imageUrl: "https://i.ibb.co/3hpkRNj/omeprazole.jpg",
     sideEffects: "Headache, abdominal pain, diarrhea",
     usageInstructions: "Take 1 capsule daily before breakfast",
   },
@@ -75,7 +75,7 @@ const medicationsList = [
     manufacturer: "Merck",
     category: "Diabetes",
     price: 9.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Metformin",
+    imageUrl: "https://i.ibb.co/z8LF3Q7/metformin.jpg",
     sideEffects: "Nausea, vomiting, stomach upset, diarrhea",
     usageInstructions: "Take 1-2 tablets with meals",
   },
@@ -86,7 +86,7 @@ const medicationsList = [
     manufacturer: "Pfizer",
     category: "Cardiovascular",
     price: 18.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Atorvastatin",
+    imageUrl: "https://i.ibb.co/2kP1YhP/atorvastatin.jpg",
     sideEffects: "Mild muscle pain, weakness, stomach upset",
     usageInstructions: "Take 1 tablet daily in the evening",
   },
@@ -97,7 +97,7 @@ const medicationsList = [
     manufacturer: "Advil",
     category: "Pain Relief",
     price: 7.49,
-    imageUrl: "https://via.placeholder.com/200x200?text=Ibuprofen",
+    imageUrl: "https://i.ibb.co/XyDQXdz/ibuprofen.jpg",
     sideEffects: "Stomach pain, heartburn, dizziness",
     usageInstructions: "Take 1-2 tablets every 4-6 hours with food",
   },
@@ -108,7 +108,7 @@ const medicationsList = [
     manufacturer: "Claritin",
     category: "Allergy",
     price: 9.99,
-    imageUrl: "https://via.placeholder.com/200x200?text=Loratadine",
+    imageUrl: "https://i.ibb.co/zNdNJWt/loratadine.jpg",
     sideEffects: "Headache, dry mouth, fatigue",
     usageInstructions: "Take 1 tablet daily with water",
   },
