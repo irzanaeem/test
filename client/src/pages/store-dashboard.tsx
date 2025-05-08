@@ -49,7 +49,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 
 // Types
@@ -320,17 +320,17 @@ const StoreDashboard = () => {
   };
 
   // Handle add inventory submission
-  const onAddInventorySubmit = (data: AddInventoryFormValues) => {
+  const onAddInventorySubmit: SubmitHandler<AddInventoryFormValues> = (data) => {
     addInventoryMutation.mutate(data);
   };
 
   // Handle update inventory submission
-  const onUpdateInventorySubmit = (data: UpdateInventoryFormValues) => {
+  const onUpdateInventorySubmit: SubmitHandler<UpdateInventoryFormValues> = (data) => {
     updateInventoryMutation.mutate(data);
   };
 
   // Handle update order status submission
-  const onUpdateOrderStatusSubmit = (data: UpdateOrderStatusFormValues) => {
+  const onUpdateOrderStatusSubmit: SubmitHandler<UpdateOrderStatusFormValues> = (data) => {
     if (selectedOrderId) {
       updateOrderStatusMutation.mutate({
         orderId: selectedOrderId,
