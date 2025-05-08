@@ -5,6 +5,7 @@ import { z } from "zod";
 import { 
   insertOrderSchema, 
   insertOrderItemSchema,
+  insertStoreInventorySchema,
   pakistanCities
 } from "@shared/schema";
 import { setupAuth } from "./auth";

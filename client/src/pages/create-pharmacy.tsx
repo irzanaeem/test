@@ -287,7 +287,11 @@ const CreatePharmacy = () => {
                       <Textarea
                         placeholder="Describe your pharmacy, services, specialties, etc."
                         className="resize-none min-h-32"
-                        {...field}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
