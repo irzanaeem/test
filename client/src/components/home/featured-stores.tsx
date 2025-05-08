@@ -7,17 +7,33 @@ interface Store {
   id: number;
   name: string;
   address: string;
+  city: string;
   openingHours: string;
   rating: number;
   imageUrl: string;
   distance: number;
 }
 
-const FeaturedStores = () => {
+interface FeaturedStoresProps {
+  userCity?: string;
+}
+
+const FeaturedStores = ({ userCity = "" }: FeaturedStoresProps) => {
   const [, setLocation] = useLocation();
   
   const { data: stores, isLoading, error } = useQuery<Store[]>({
-    queryKey: ['/api/stores'],
+    queryKey: ['/api/stores', userCity ? { city: userCity } : null],
+    queryFn: async ({ queryKey }) => {
+      const [_, params] = queryKey;
+      const url = userCity 
+        ? `/api/stores?city=${encodeURIComponent(userCity)}`
+        : '/api/stores';
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch stores');
+      }
+      return response.json();
+    },
   });
 
   const viewStore = (storeId: number) => {

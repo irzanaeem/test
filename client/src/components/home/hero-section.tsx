@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  userCity?: string;
+}
+
+const HeroSection = ({ userCity = "" }: HeroSectionProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
 
