@@ -255,7 +255,7 @@ const StoreDashboard = () => {
     // Apply text search filter
     const matchesSearch = 
       item.medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.medication.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.medication.description && item.medication.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Apply status filter
     const matchesFilter = 

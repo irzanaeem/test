@@ -111,7 +111,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
             </div>
             <button
               onClick={handleAddToCart}
-              className="bg-primary-500 hover:bg-primary-600 text-white py-1 px-3 rounded-md font-medium text-sm transition-colors"
+              className="bg-primary-500 hover:bg-primary-600 text-white py-1 px-3 rounded-md font-medium text-sm transition-colors border border-primary-600 shadow-sm"
             >
               Add
             </button>
@@ -136,7 +136,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
             isAvailable ? (
               <button
                 onClick={() => setShowQuantity(true)}
-                className="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors flex items-center justify-center"
+                className="flex-1 bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors flex items-center justify-center shadow-md border border-primary-600"
               >
                 <i className="ri-shopping-cart-2-line mr-1"></i>
                 Add to Cart

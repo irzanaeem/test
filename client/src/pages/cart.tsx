@@ -67,18 +67,18 @@ const CartPage = () => {
       const storeItems = itemsByStore[storeId].items;
       
       const orderData = {
-        storeId,
-        totalAmount: itemsByStore[storeId].total,
+        storeId: Number(storeId),
+        totalAmount: Number(itemsByStore[storeId].total.toFixed(2)),
         pickupTime: formData.pickupTime,
-        notes: formData.notes
+        notes: formData.notes || ""
       };
       
       const response = await apiRequest("POST", "/api/orders", {
         order: orderData,
         items: storeItems.map(item => ({
-          medicationId: item.medicationId,
-          quantity: item.quantity,
-          price: item.price
+          medicationId: Number(item.medicationId),
+          quantity: Number(item.quantity),
+          price: Number(item.price.toFixed(2))
         }))
       });
       

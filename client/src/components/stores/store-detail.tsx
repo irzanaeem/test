@@ -130,7 +130,7 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-heading font-semibold text-neutral-900">Available Medications</h2>
-          <Link href="/cart" className="bg-accent-500 hover:bg-accent-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors flex items-center">
+          <Link href="/cart" className="bg-accent-500 hover:bg-accent-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors flex items-center shadow-md border border-accent-600">
             <i className="ri-shopping-cart-2-line mr-2"></i>
             View Cart
           </Link>
