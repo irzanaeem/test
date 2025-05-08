@@ -11,13 +11,14 @@ import {
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 
+// Import FileArray type
+import { FileArray } from "express-fileupload";
+
 // Extend Express Request type to include files
 declare global {
   namespace Express {
     interface Request {
-      files?: {
-        [key: string]: UploadedFile | UploadedFile[];
-      };
+      files?: FileArray | null;
     }
   }
 }
@@ -96,8 +97,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { name, address, city, zipCode, phone, email, openingHours, description } = req.body;
         
         // Extract image if present
-        if (req.files && (req.files as any).image) {
-          const imageFile = (req.files as any).image;
+        if (req.files && req.files.image) {
+          const imageFile = Array.isArray(req.files.image) 
+            ? req.files.image[0] 
+            : req.files.image;
+          
           // Here you would normally upload the file to cloud storage
           // For now, we'll use a placeholder or the URL if provided
           imageUrl = `https://i.ibb.co/DDkqJ7w/pharmacy4.jpg`;

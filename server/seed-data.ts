@@ -181,7 +181,7 @@ export async function seedData() {
     for (const med of medicationsList) {
       await db.update(medications)
         .set({ imageUrl: med.imageUrl })
-        .where(sql`${medications.name} = ${med.name}`)
+        .where(eq(medications.name, med.name))
         .execute();
     }
     console.log(`Updated ${medicationsList.length} medication images.`);
@@ -192,7 +192,7 @@ export async function seedData() {
       const pharmacy = lahorePharmacies[i];
       await db.update(stores)
         .set({ imageUrl: pharmacy.imageUrl })
-        .where(sql`${stores.name} = ${pharmacy.name}`)
+        .where(eq(stores.name, pharmacy.name))
         .execute();
     }
     
@@ -201,7 +201,7 @@ export async function seedData() {
       const pharmacy = faisalabadPharmacies[i];
       await db.update(stores)
         .set({ imageUrl: pharmacy.imageUrl })
-        .where(sql`${stores.name} = ${pharmacy.name}`)
+        .where(eq(stores.name, pharmacy.name))
         .execute();
     }
     
