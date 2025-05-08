@@ -249,10 +249,23 @@ const StoreDashboard = () => {
     setInventoryDialogOpen(true);
   };
 
-  const filteredInventory = inventory.filter(item => 
-    item.medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.medication.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [inventoryFilter, setInventoryFilter] = useState<'all' | 'in-stock' | 'out-of-stock' | 'low-stock'>('all');
+
+  const filteredInventory = inventory.filter(item => {
+    // Apply text search filter
+    const matchesSearch = 
+      item.medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.medication.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Apply status filter
+    const matchesFilter = 
+      inventoryFilter === 'all' ||
+      (inventoryFilter === 'in-stock' && item.inStock && item.quantity > 10) ||
+      (inventoryFilter === 'low-stock' && item.inStock && item.quantity > 0 && item.quantity <= 10) ||
+      (inventoryFilter === 'out-of-stock' && (!item.inStock || item.quantity === 0));
+    
+    return matchesSearch && matchesFilter;
+  });
 
   const pendingOrders = orders.filter(order => order.status === "pending");
   const processingOrders = orders.filter(order => order.status === "processing");
@@ -567,6 +580,40 @@ const StoreDashboard = () => {
                       Add Product
                     </Button>
                   </div>
+                </div>
+                
+                <div className="px-6 pb-4 flex gap-2">
+                  <Button 
+                    variant={inventoryFilter === 'all' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setInventoryFilter('all')}
+                  >
+                    All Products
+                  </Button>
+                  <Button 
+                    variant={inventoryFilter === 'in-stock' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setInventoryFilter('in-stock')}
+                    className="text-green-600"
+                  >
+                    In Stock
+                  </Button>
+                  <Button 
+                    variant={inventoryFilter === 'low-stock' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setInventoryFilter('low-stock')}
+                    className="text-orange-500"
+                  >
+                    Low Stock
+                  </Button>
+                  <Button 
+                    variant={inventoryFilter === 'out-of-stock' ? 'default' : 'outline'} 
+                    size="sm"
+                    onClick={() => setInventoryFilter('out-of-stock')}
+                    className="text-red-500"
+                  >
+                    Out of Stock
+                  </Button>
                 </div>
 
                 <div className="overflow-x-auto">

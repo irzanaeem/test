@@ -215,7 +215,7 @@ const CartPage = () => {
                               />
                             ) : (
                               <div className="h-full w-full bg-gray-100 flex items-center justify-center">
-                                <i className="ri-capsule-line text-2xl text-gray-400"></i>
+                                <i className="ri-medicine-bottle-line text-2xl text-gray-400"></i>
                               </div>
                             )}
                           </div>
