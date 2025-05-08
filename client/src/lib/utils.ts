@@ -68,7 +68,10 @@ export function getStockStatus(
   };
 }
 
-export const getDistanceLabel = (distance: number): string => {
+export const getDistanceLabel = (distance: number | undefined): string => {
+  if (distance === undefined || distance === null) {
+    return "Distance unknown";
+  }
   return `${distance.toFixed(1)} miles`;
 };
 
