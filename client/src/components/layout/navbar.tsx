@@ -161,6 +161,29 @@ const Navbar = () => {
                             )}
                           </Link>
                         </DropdownMenuItem>
+                        
+                        {user.isStore && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link href="/store-dashboard" className="cursor-pointer w-full">
+                                <span className="flex items-center">
+                                  <i className="ri-store-3-line mr-2"></i>
+                                  My Pharmacy
+                                </span>
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href="/create-pharmacy" className="cursor-pointer w-full">
+                                <span className="flex items-center">
+                                  <i className="ri-add-circle-line mr-2"></i>
+                                  Create Pharmacy
+                                </span>
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => logout()} className="cursor-pointer">
                           Sign out
@@ -226,6 +249,37 @@ const Navbar = () => {
           >
             Orders
           </Link>
+          
+          {user?.isStore && (
+            <>
+              <div className="border-t border-gray-200 my-2"></div>
+              <div className="pt-1 pb-1">
+                <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Pharmacy Manager
+                </h3>
+              </div>
+              <Link 
+                href="/store-dashboard"
+                className={`${isActive('/store-dashboard') ? 'bg-primary-50 border-l-4 border-primary-500 text-primary-500' : 'border-l-4 border-transparent text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 hover:text-neutral-700'} block pl-3 pr-4 py-2 font-medium`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="flex items-center">
+                  <i className="ri-store-3-line mr-2"></i>
+                  My Pharmacy
+                </span>
+              </Link>
+              <Link 
+                href="/create-pharmacy"
+                className={`${isActive('/create-pharmacy') ? 'bg-primary-50 border-l-4 border-primary-500 text-primary-500' : 'border-l-4 border-transparent text-neutral-500 hover:bg-neutral-50 hover:border-neutral-300 hover:text-neutral-700'} block pl-3 pr-4 py-2 font-medium`}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className="flex items-center">
+                  <i className="ri-add-circle-line mr-2"></i>
+                  Create Pharmacy
+                </span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

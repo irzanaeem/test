@@ -17,6 +17,8 @@ import Cart from "@/pages/cart";
 import Scanner from "@/pages/scanner";
 import Orders from "@/pages/orders";
 import Notifications from "@/pages/notifications";
+import CreatePharmacy from "@/pages/create-pharmacy";
+import StoreDashboard from "@/pages/store-dashboard";
 
 function Router() {
   const [location] = useLocation();
@@ -37,6 +39,8 @@ function Router() {
         <ProtectedRoute path="/scanner" component={Scanner} />
         <ProtectedRoute path="/orders" component={Orders} />
         <ProtectedRoute path="/notifications" component={Notifications} />
+        <ProtectedRoute path="/create-pharmacy" component={CreatePharmacy} />
+        <ProtectedRoute path="/store-dashboard" component={StoreDashboard} />
         <Route component={NotFound} />
       </Switch>
     </>
