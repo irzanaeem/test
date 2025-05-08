@@ -32,7 +32,7 @@ const Home = () => {
         <HowItWorks userCity={userCity} />
         <FeaturedStores userCity={userCity} />
         <ScannerFeature userCity={userCity} />
-        <PopularMedications />
+        <PopularMedications userCity={userCity} />
       </main>
     </>
   );

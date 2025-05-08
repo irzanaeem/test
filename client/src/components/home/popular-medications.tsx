@@ -29,8 +29,14 @@ const PopularMedications = ({ userCity = "" }: PopularMedicationsProps) => {
       <div className="py-12 bg-neutral-50">
         <div className="container-custom">
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-heading font-bold text-neutral-900">Popular Medications</h2>
-            <p className="mt-4 text-neutral-600">The most commonly searched medications in your area</p>
+            <h2 className="text-2xl font-heading font-bold text-neutral-900">
+              {userCity ? `Popular Medications in ${userCity}` : "Popular Medications"}
+            </h2>
+            <p className="mt-4 text-neutral-600">
+              {userCity 
+                ? `The most commonly searched medications in ${userCity}`
+                : "The most commonly searched medications in your area"}
+            </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, index) => (
@@ -52,7 +58,9 @@ const PopularMedications = ({ userCity = "" }: PopularMedicationsProps) => {
       <div className="py-12 bg-neutral-50">
         <div className="container-custom">
           <div className="text-center">
-            <h2 className="text-2xl font-heading font-bold text-neutral-900 mb-4">Popular Medications</h2>
+            <h2 className="text-2xl font-heading font-bold text-neutral-900 mb-4">
+              {userCity ? `Popular Medications in ${userCity}` : "Popular Medications"}
+            </h2>
             <p className="text-red-500">Failed to load medications. Please try again later.</p>
           </div>
         </div>
@@ -67,8 +75,14 @@ const PopularMedications = ({ userCity = "" }: PopularMedicationsProps) => {
     <div className="py-12 bg-neutral-50">
       <div className="container-custom">
         <div className="text-center mb-12">
-          <h2 className="text-2xl font-heading font-bold text-neutral-900">Popular Medications</h2>
-          <p className="mt-4 text-neutral-600">The most commonly searched medications in your area</p>
+          <h2 className="text-2xl font-heading font-bold text-neutral-900">
+            {userCity ? `Popular Medications in ${userCity}` : "Popular Medications"}
+          </h2>
+          <p className="mt-4 text-neutral-600">
+            {userCity 
+              ? `The most commonly searched medications in ${userCity}`
+              : "The most commonly searched medications in your area"}
+          </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {popularMeds.map((medication) => (
