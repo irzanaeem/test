@@ -233,8 +233,10 @@ const CartPage = () => {
                               size="icon"
                               className="h-8 w-8 text-gray-600"
                               onClick={() => updateQuantity(item.medicationId, item.quantity - 1)}
+                              aria-label="Decrease quantity"
+                              title="Decrease quantity"
                             >
-                              <MinusIcon className="h-4 w-4" />
+                              <MinusIcon className="h-4 w-4" aria-hidden="true" />
                             </Button>
                             
                             <div className="w-8 text-center">{item.quantity}</div>
@@ -244,8 +246,10 @@ const CartPage = () => {
                               size="icon"
                               className="h-8 w-8 text-gray-600"
                               onClick={() => updateQuantity(item.medicationId, item.quantity + 1)}
+                              aria-label="Increase quantity"
+                              title="Increase quantity"
                             >
-                              <PlusIcon className="h-4 w-4" />
+                              <PlusIcon className="h-4 w-4" aria-hidden="true" />
                             </Button>
                           </div>
                           

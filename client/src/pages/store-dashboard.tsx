@@ -143,7 +143,7 @@ const StoreDashboard = () => {
 
   // Fetch store orders
   const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
-    queryKey: ["/api/orders/store", selectedStore?.id],
+    queryKey: [`/api/orders/store/${selectedStore?.id}`],
     enabled: !!selectedStore,
   });
 
@@ -207,7 +207,7 @@ const StoreDashboard = () => {
       });
       
       // Invalidate and refetch orders data
-      queryClient.invalidateQueries({ queryKey: ["/api/orders/store", selectedStore?.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/store/${selectedStore?.id}`] });
     },
     onError: (error: Error) => {
       toast({
