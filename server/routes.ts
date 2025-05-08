@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { UploadedFile } from "express-fileupload";
 import { storage } from "./storage";
 import { z } from "zod";
 import { 
@@ -9,6 +10,17 @@ import {
   pakistanCities
 } from "@shared/schema";
 import { setupAuth } from "./auth";
+
+// Extend Express Request type to include files
+declare global {
+  namespace Express {
+    interface Request {
+      files?: {
+        [key: string]: UploadedFile | UploadedFile[];
+      };
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -63,6 +75,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user stores:", error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Create a new store (pharmacy)
+  app.post("/api/stores", requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!(req.user as any).isStore) {
+        return res.status(403).json({ message: "Only store owners can create pharmacies" });
+      }
+      
+      const userId = (req.user as any).id;
+      
+      // Handle FormData or JSON
+      let storeData;
+      let imageUrl = null;
+      
+      if (req.is('multipart/form-data')) {
+        // Process form data
+        const { name, address, city, zipCode, phone, email, openingHours, description } = req.body;
+        
+        // Extract image if present
+        if (req.files && (req.files as any).image) {
+          const imageFile = (req.files as any).image;
+          // Here you would normally upload the file to cloud storage
+          // For now, we'll use a placeholder or the URL if provided
+          imageUrl = `https://i.ibb.co/DDkqJ7w/pharmacy4.jpg`;
+        }
+        
+        storeData = {
+          name,
+          address,
+          city,
+          zipCode,
+          phone,
+          email,
+          openingHours,
+          description,
+          imageUrl: imageUrl || `https://i.ibb.co/HTT4Ljh/pharmacy1.jpg`,
+          rating: 0,
+          reviewCount: 0,
+          userId
+        };
+      } else {
+        // Process JSON data
+        storeData = {
+          ...req.body,
+          imageUrl: req.body.imageUrl || `https://i.ibb.co/HTT4Ljh/pharmacy1.jpg`,
+          rating: 0,
+          reviewCount: 0,
+          userId
+        };
+      }
+      
+      const newStore = await storage.createStore(storeData);
+      return res.status(201).json(newStore);
+    } catch (error: any) {
+      console.error("Error creating store:", error);
+      return res.status(500).json({ message: "Internal server error", error: error.message });
     }
   });
   

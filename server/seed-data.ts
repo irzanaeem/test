@@ -114,7 +114,7 @@ const medicationsList = [
   },
 ];
 
-// Sample pharmacies in Lahore
+// Sample pharmacies in Lahore with real images
 const lahorePharmacies = [
   {
     name: "MediCare Pharmacy",
@@ -124,7 +124,7 @@ const lahorePharmacies = [
     phone: "042-12345678",
     openingHours: "Monday-Saturday: 9am-9pm, Sunday: 10am-6pm",
     description: "A full-service pharmacy offering a wide range of medications and health products.",
-    imageUrl: "https://via.placeholder.com/400x300?text=MediCare+Pharmacy",
+    imageUrl: "https://i.ibb.co/HTT4Ljh/pharmacy1.jpg",
     rating: 4.5,
     reviewCount: 120,
   },
@@ -136,13 +136,13 @@ const lahorePharmacies = [
     phone: "042-87654321",
     openingHours: "Open 24/7",
     description: "Your 24/7 health partner offering quality medications and healthcare advice.",
-    imageUrl: "https://via.placeholder.com/400x300?text=Health+First+Pharmacy",
+    imageUrl: "https://i.ibb.co/Br58mSP/pharmacy2.jpg",
     rating: 4.7,
     reviewCount: 95,
   },
 ];
 
-// Sample pharmacies in Faisalabad
+// Sample pharmacies in Faisalabad with real images
 const faisalabadPharmacies = [
   {
     name: "City Pharmacy",
@@ -152,7 +152,7 @@ const faisalabadPharmacies = [
     phone: "041-12345678",
     openingHours: "Monday-Saturday: 8am-10pm, Sunday: 9am-8pm",
     description: "Serving the community with quality medications and excellent service.",
-    imageUrl: "https://via.placeholder.com/400x300?text=City+Pharmacy",
+    imageUrl: "https://i.ibb.co/PCcTsk8/pharmacy3.jpg",
     rating: 4.3,
     reviewCount: 78,
   },
@@ -164,7 +164,7 @@ const faisalabadPharmacies = [
     phone: "041-87654321",
     openingHours: "Monday-Saturday: 9am-9pm, Sunday: 10am-6pm",
     description: "Your neighborhood pharmacy for all your health needs.",
-    imageUrl: "https://via.placeholder.com/400x300?text=Wellness+Pharmacy",
+    imageUrl: "https://i.ibb.co/DDkqJ7w/pharmacy4.jpg",
     rating: 4.6,
     reviewCount: 62,
   },
