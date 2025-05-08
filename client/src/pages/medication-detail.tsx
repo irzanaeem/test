@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet";
 import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/use-cart";
 import MedicationDetail from "@/components/medications/medication-detail";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,7 @@ const MedicationDetailPage = () => {
   const medicationId = parseInt(params.id);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { addItem } = useCart();
   const [storeInventoryItem, setStoreInventoryItem] = useState<StoreInventoryItem | null>(null);
   
   // Get query parameters for store if available
@@ -76,39 +78,13 @@ const MedicationDetailPage = () => {
   const addToCart = (quantity: number) => {
     if (!medication || !storeInventoryItem) return;
     
-    // Get existing cart from localStorage
-    const cartJSON = localStorage.getItem('cart');
-    let cart = cartJSON ? JSON.parse(cartJSON) : [];
-    
-    // Check if this item is already in cart
-    const existingItemIndex = cart.findIndex((item: any) => 
-      item.id === medication.id && item.storeId === storeInventoryItem.storeId
-    );
-    
-    if (existingItemIndex >= 0) {
-      // Update quantity
-      cart[existingItemIndex].quantity += quantity;
-    } else {
-      // Add new item
-      cart.push({
-        id: medication.id,
-        name: medication.name,
-        dosage: medication.dosage,
-        price: storeInventoryItem.price || medication.price,
-        imageUrl: medication.imageUrl,
-        quantity: quantity,
-        storeId: storeInventoryItem.storeId,
-        storeName: storeInventoryItem.store?.name || ""
-      });
-    }
-    
-    // Save back to localStorage
-    localStorage.setItem('cart', JSON.stringify(cart));
-    
-    toast({
-      title: "Added to cart",
-      description: `${quantity} ${quantity === 1 ? 'unit' : 'units'} of ${medication.name} added to your cart.`,
-    });
+    // Use the cart hook to add the item
+    addItem({
+      ...medication,
+      storeId: storeInventoryItem.storeId,
+      storeName: storeInventoryItem.store?.name || "Store",
+      inventoryPrice: storeInventoryItem.price || medication.price
+    }, quantity);
   };
   
   const isLoading = isLoadingMedication || (storeId !== null && isLoadingInventory);
