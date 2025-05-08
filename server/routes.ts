@@ -53,6 +53,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get stores owned by the authenticated user
+  app.get("/api/stores/user", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any).id;
+      const stores = await storage.getStoresByUserID(userId);
+      return res.status(200).json(stores);
+    } catch (error) {
+      console.error("Error fetching user stores:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   app.get("/api/stores/:id", async (req: Request, res: Response) => {
     try {
       const storeId = parseInt(req.params.id);
@@ -160,6 +172,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(orders);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Get orders for a specific store (store owner only)
+  app.get("/api/orders/store/:storeId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      if (isNaN(storeId)) {
+        return res.status(400).json({ message: "Invalid store ID" });
+      }
+      
+      // Get the store to verify ownership
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      // Check if the authenticated user is the store owner
+      if (store.userId !== (req.user as any).id) {
+        return res.status(403).json({ message: "Forbidden: You are not the owner of this store" });
+      }
+      
+      const orders = await storage.getOrdersByStoreId(storeId);
+      return res.status(200).json(orders);
+    } catch (error) {
+      console.error("Error fetching store orders:", error);
       return res.status(500).json({ message: "Internal server error" });
     }
   });
