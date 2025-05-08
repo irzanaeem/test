@@ -131,15 +131,31 @@ const MedicationDetail = ({ medication, storeName, onAddToCart }: MedicationDeta
                   <i className="ri-shopping-cart-2-line mr-2"></i>
                   Add to Cart
                 </button>
+                <a 
+                  href="/cart"
+                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center"
+                >
+                  <i className="ri-shopping-cart-2-fill mr-2"></i>
+                  View Cart
+                </a>
               </div>
             )}
             {isOutOfStock && (
-              <button
-                className="px-6 py-2 bg-neutral-300 text-neutral-500 cursor-not-allowed rounded-md font-medium"
-                disabled
-              >
-                Out of Stock
-              </button>
+              <div className="flex items-center">
+                <button
+                  className="px-6 py-2 bg-neutral-300 text-neutral-500 cursor-not-allowed rounded-md font-medium"
+                  disabled
+                >
+                  Out of Stock
+                </button>
+                <a 
+                  href="/cart"
+                  className="ml-4 px-6 py-2 bg-accent-500 hover:bg-accent-600 text-white rounded-md font-medium transition-colors flex items-center"
+                >
+                  <i className="ri-shopping-cart-2-fill mr-2"></i>
+                  View Cart
+                </a>
+              </div>
             )}
           </div>
         </div>

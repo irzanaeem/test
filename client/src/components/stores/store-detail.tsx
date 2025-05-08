@@ -1,5 +1,6 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { formatCurrency, getOpenStatus } from "@/lib/utils";
+import MedicationCard from "@/components/medications/medication-card";
 
 interface Medication {
   id: number;
@@ -27,28 +28,15 @@ interface StoreDetailProps {
   };
   inventory: Medication[];
   isLoading: boolean;
-  onAddToCart: (medication: Medication) => void;
+  onAddToCart: (medication: Medication, quantity: number) => void;
 }
 
 const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailProps) => {
+  const [, setLocation] = useLocation();
   const openStatus = getOpenStatus(store.openingHours);
 
-  const getStockStatusClass = (inStock: boolean, quantity: number) => {
-    if (!inStock || quantity === 0) return "text-red-500";
-    if (quantity <= 10) return "text-orange-500";
-    return "text-green-600";
-  };
-
-  const getStockStatusIcon = (inStock: boolean, quantity: number) => {
-    if (!inStock || quantity === 0) return "ri-close-circle-line";
-    if (quantity <= 10) return "ri-error-warning-line";
-    return "ri-checkbox-circle-line";
-  };
-
-  const getStockStatusText = (inStock: boolean, quantity: number) => {
-    if (!inStock || quantity === 0) return "Out of Stock";
-    if (quantity <= 10) return "Low Stock";
-    return "In Stock";
+  const handleViewDetails = (medicationId: number) => {
+    setLocation(`/medications/${medicationId}?store=${store.id}`);
   };
 
   return (
@@ -142,51 +130,25 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-heading font-semibold text-neutral-900">Available Medications</h2>
+          <Link href="/cart" className="bg-accent-500 hover:bg-accent-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors flex items-center">
+            <i className="ri-shopping-cart-2-line mr-2"></i>
+            View Cart
+          </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {inventory.map((medication) => (
-            <div
+            <MedicationCard
               key={medication.id}
-              className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden p-4 hover:shadow-md transition-shadow duration-300"
-            >
-              <div className="flex items-start">
-                {medication.imageUrl ? (
-                  <img
-                    src={medication.imageUrl}
-                    alt={medication.name}
-                    className="w-16 h-16 object-cover rounded-md mr-4"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-gray-200 flex items-center justify-center rounded-md mr-4">
-                    <i className="ri-capsule-line text-2xl text-gray-400"></i>
-                  </div>
-                )}
-                <div className="flex-1">
-                  <h3 className="font-heading font-semibold text-neutral-900">{medication.name}</h3>
-                  <p className="text-sm text-neutral-500 mb-2">{medication.dosage}</p>
-                  <div className={`flex items-center text-sm ${getStockStatusClass(medication.inStock, medication.quantity)}`}>
-                    <i className={`${getStockStatusIcon(medication.inStock, medication.quantity)} mr-1`}></i>
-                    {getStockStatusText(medication.inStock, medication.quantity)}
-                  </div>
-                  <p className="text-primary-500 font-medium mt-2">{formatCurrency(medication.price)}</p>
-                </div>
-              </div>
-              {medication.inStock && medication.quantity > 0 ? (
-                <button 
-                  onClick={() => onAddToCart(medication)}
-                  className="mt-3 w-full bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors"
-                >
-                  Add to Cart
-                </button>
-              ) : (
-                <button 
-                  className="mt-3 w-full bg-neutral-300 text-neutral-500 cursor-not-allowed py-2 px-4 rounded-md font-medium text-sm"
-                  disabled
-                >
-                  Out of Stock
-                </button>
-              )}
-            </div>
+              medication={medication}
+              onViewDetails={handleViewDetails}
+              onAddToCart={(medicationId, quantity) => {
+                // Find the medication and pass it to the onAddToCart function
+                const med = inventory.find(m => m.id === medicationId);
+                if (med) {
+                  onAddToCart(med, quantity);
+                }
+              }}
+            />
           ))}
         </div>
       </div>
