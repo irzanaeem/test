@@ -61,6 +61,7 @@ const signupSchema = z.object({
   phone: z.string().optional(),
   address: z.string().min(1, "Address is required"),
   city: z.enum(cityArray),
+  isStore: z.boolean().optional().default(false),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: "You must agree to the terms and conditions",
   }),
@@ -106,6 +107,7 @@ const AuthPage = () => {
       phone: "",
       address: "",
       city: undefined,
+      isStore: false,
       agreeToTerms: false,
     },
   });
@@ -402,6 +404,29 @@ const AuthPage = () => {
                             )}
                           />
                           
+                          <FormField
+                            control={signupForm.control}
+                            name="isStore"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-4">
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel>Register as a Pharmacy Store Owner</FormLabel>
+                                  <FormDescription>
+                                    Check this box if you want to register as a pharmacy store owner. 
+                                    This will allow you to create and manage your store, add medications, 
+                                    and fulfill orders.
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
                           <FormField
                             control={signupForm.control}
                             name="agreeToTerms"

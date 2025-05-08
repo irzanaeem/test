@@ -306,6 +306,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cities", (req: Request, res: Response) => {
     return res.status(200).json(pakistanCities);
   });
+  
+  // Seed data endpoint (for development purposes only)
+  app.post("/api/seed-data", async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(403).json({ message: "Seeding not allowed in production" });
+    }
+    
+    try {
+      const { seedData } = await import("./seed-data");
+      await seedData();
+      return res.status(200).json({ message: "Data seeded successfully" });
+    } catch (error) {
+      console.error("Error seeding data:", error);
+      return res.status(500).json({ message: "Error seeding data" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

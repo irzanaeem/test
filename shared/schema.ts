@@ -163,6 +163,13 @@ export const loginSchema = z.object({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Add isStore field to signup schema
+export const signupSchema = insertUserSchema.extend({
+  confirmPassword: z.string(),
+  agreeToTerms: z.boolean(),
+  isStore: z.boolean().optional().default(false),
+});
 export type Store = typeof stores.$inferSelect;
 export type InsertStore = z.infer<typeof insertStoreSchema>;
 export type Medication = typeof medications.$inferSelect;
