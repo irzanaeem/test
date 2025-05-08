@@ -229,6 +229,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH route to update order status
+  app.patch("/api/orders/:id/status", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+      }
+      
+      const { status } = req.body;
+      if (!status || !["pending", "processing", "ready", "completed", "cancelled"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status value" });
+      }
+      
+      // Get the order to check ownership
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+      
+      // For store owners, verify they own the store where the order was placed
+      if ((req.user as any).isStore) {
+        const userStores = await storage.getStoresByUserID((req.user as any).id);
+        const storeIds = userStores.map(store => store.id);
+        
+        if (!storeIds.includes(order.storeId)) {
+          return res.status(403).json({ message: "Forbidden: You do not own this store" });
+        }
+      } 
+      // For regular users, check if the order belongs to them
+      else if (order.userId !== (req.user as any).id) {
+        return res.status(403).json({ message: "Forbidden: This is not your order" });
+      }
+      
+      // Update order status
+      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      return res.status(200).json(updatedOrder);
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // POST route to add a product to store inventory
+  app.post("/api/stores/:storeId/inventory", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      if (isNaN(storeId)) {
+        return res.status(400).json({ message: "Invalid store ID" });
+      }
+      
+      // Check if the store belongs to the authenticated user
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      if (store.userId !== (req.user as any).id) {
+        return res.status(403).json({ message: "Forbidden: You do not own this store" });
+      }
+      
+      const { medicationId, price, quantity } = req.body;
+      
+      // Validate inventory data
+      const inStock = quantity > 0;
+      const validatedInventory = insertStoreInventorySchema.parse({
+        storeId,
+        medicationId,
+        price,
+        quantity,
+        inStock
+      });
+      
+      // Create inventory item
+      const inventoryItem = await storage.createStoreInventory(validatedInventory);
+      
+      // Get the medication details to include in the response
+      const medication = await storage.getMedication(medicationId);
+      
+      return res.status(201).json({
+        ...inventoryItem,
+        medication
+      });
+    } catch (error) {
+      console.error("Error adding inventory item:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // PATCH route to update a store inventory item
+  app.patch("/api/stores/:storeId/inventory/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const storeId = parseInt(req.params.storeId);
+      const inventoryId = parseInt(req.params.id);
+      
+      if (isNaN(storeId) || isNaN(inventoryId)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
+      
+      // Check if the store belongs to the authenticated user
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+      
+      if (store.userId !== (req.user as any).id) {
+        return res.status(403).json({ message: "Forbidden: You do not own this store" });
+      }
+      
+      const { price, quantity } = req.body;
+      
+      // Update inventory with new data
+      const inStock = quantity > 0;
+      const updatedInventory = await storage.updateStoreInventory(inventoryId, {
+        price,
+        quantity,
+        inStock
+      });
+      
+      if (!updatedInventory) {
+        return res.status(404).json({ message: "Inventory item not found" });
+      }
+      
+      // Get the full inventory item with medication details
+      const inventoryItem = await storage.getStoreInventoryItem(storeId, updatedInventory.medicationId);
+      
+      return res.status(200).json(inventoryItem);
+    } catch (error) {
+      console.error("Error updating inventory item:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/orders", requireAuth, async (req: Request, res: Response) => {
     try {
       const { order, items } = req.body;

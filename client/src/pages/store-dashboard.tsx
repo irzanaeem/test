@@ -1,24 +1,20 @@
 import { useState, useEffect } from "react";
-import { Helmet } from "react-helmet";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Helmet } from "react-helmet";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { formatCurrency, formatDate } from "@/lib/utils";
+
+// UI Components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -29,14 +25,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -44,15 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { formatCurrency } from "@/lib/utils";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, type SubmitHandler } from "react-hook-form";
-import { z } from "zod";
 
-// Types
 interface Store {
   id: number;
   name: string;
@@ -62,174 +52,142 @@ interface Store {
   phone: string;
   email: string;
   openingHours: string;
-  description?: string;
+  description: string;
   imageUrl?: string;
-  rating?: number;
-  reviewCount?: number;
 }
 
 interface Medication {
   id: number;
   name: string;
-  description?: string;
-  dosage?: string;
+  description: string;
+  dosage: string;
   manufacturer?: string;
   category?: string;
   price: number;
   imageUrl?: string;
-  sideEffects?: string;
-  usageInstructions?: string;
 }
 
-interface StoreInventoryItem {
+interface StoreInventory {
   id: number;
-  storeId: number;
   medicationId: number;
-  medication: Medication;
-  inStock: boolean;
-  quantity: number;
+  storeId: number;
   price: number;
+  quantity: number;
+  inStock: boolean;
+  medication: Medication;
 }
 
 interface Order {
   id: number;
-  userId: number;
-  storeId: number;
-  status: "pending" | "confirmed" | "ready" | "completed" | "cancelled";
-  totalAmount: number;
+  status: string;
   createdAt: string;
-  pickupTime?: string;
-  notes?: string;
+  pickupTime: string;
+  totalAmount: number;
   user: {
     id: number;
     firstName: string;
     lastName: string;
     phone?: string;
-    address: string;
-    city: string;
   };
   items: {
     id: number;
-    orderId: number;
     medicationId: number;
     quantity: number;
     price: number;
-    medication: Medication;
+    medication: {
+      id: number;
+      name: string;
+      dosage: string;
+    };
   }[];
 }
 
-// Schema for adding medication to inventory
-const addInventorySchema = z.object({
-  medicationId: z.string().min(1, "Please select a medication"),
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
-  inStock: z.boolean().default(true),
-});
-
-// Schema for updating inventory item
-const updateInventorySchema = z.object({
-  id: z.number(),
-  quantity: z.coerce.number().min(0, "Quantity cannot be negative"),
-  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
-  inStock: z.boolean(),
-});
-
-// Schema for updating order status
-const updateOrderStatusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "ready", "completed", "cancelled"]),
-});
-
-type AddInventoryFormValues = z.infer<typeof addInventorySchema>;
-type UpdateInventoryFormValues = z.infer<typeof updateInventorySchema>;
-type UpdateOrderStatusFormValues = z.infer<typeof updateOrderStatusSchema>;
+interface InventoryFormData {
+  medicationId: number;
+  price: number;
+  quantity: number;
+}
 
 const StoreDashboard = () => {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("inventory");
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [orderStatusDialogOpen, setOrderStatusDialogOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [, navigate] = useLocation();
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [inventoryFormData, setInventoryFormData] = useState<InventoryFormData>({
+    medicationId: 0,
+    price: 0,
+    quantity: 0,
+  });
+  const [inventoryDialogOpen, setInventoryDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentInventoryId, setCurrentInventoryId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Queries
-  const { data: stores, isLoading: storesLoading } = useQuery<Store[]>({
-    queryKey: ['/api/stores/user'],
-    enabled: !!user && user.isStore === true,
+  // Fetch user's stores
+  const { data: stores = [], isLoading: isLoadingStores } = useQuery<Store[]>({
+    queryKey: ["/api/stores/user"],
+    enabled: !!user?.isStore,
   });
 
-  const store = stores && stores.length > 0 ? stores[0] : null;
-
-  const { data: inventory, isLoading: inventoryLoading } = useQuery<StoreInventoryItem[]>({
-    queryKey: ['/api/stores', store?.id, 'inventory'],
-    enabled: !!store,
+  // Fetch all medications for the inventory management
+  const { data: medications = [], isLoading: isLoadingMedications } = useQuery<Medication[]>({
+    queryKey: ["/api/medications"],
+    enabled: !!selectedStore,
   });
 
-  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ['/api/orders/store', store?.id],
-    enabled: !!store,
+  // Fetch store inventory
+  const { data: inventory = [], isLoading: isLoadingInventory } = useQuery<StoreInventory[]>({
+    queryKey: ["/api/stores", selectedStore?.id, "inventory"],
+    enabled: !!selectedStore,
   });
 
-  const { data: allMedications, isLoading: medicationsLoading } = useQuery<Medication[]>({
-    queryKey: ['/api/medications'],
-    enabled: !!user && user.isStore === true,
+  // Fetch store orders
+  const { data: orders = [], isLoading: isLoadingOrders } = useQuery<Order[]>({
+    queryKey: ["/api/orders/store", selectedStore?.id],
+    enabled: !!selectedStore,
   });
 
-  // Add inventory mutation
-  const addInventoryMutation = useMutation({
-    mutationFn: async (data: AddInventoryFormValues) => {
-      if (!store) throw new Error("Store not found");
+  // Set the first store as selected on initial load
+  useEffect(() => {
+    if (stores && stores.length > 0 && !selectedStore) {
+      setSelectedStore(stores[0]);
+    }
+  }, [stores, selectedStore]);
+
+  // Add/Update inventory item mutation
+  const inventoryMutation = useMutation({
+    mutationFn: async (data: InventoryFormData) => {
+      const endpoint = isEditMode 
+        ? `/api/stores/${selectedStore?.id}/inventory/${currentInventoryId}` 
+        : `/api/stores/${selectedStore?.id}/inventory`;
       
-      return apiRequest("POST", `/api/stores/${store.id}/inventory`, {
-        medicationId: parseInt(data.medicationId),
-        quantity: data.quantity,
-        price: data.price,
-        inStock: data.inStock,
-      });
+      const method = isEditMode ? "PATCH" : "POST";
+      
+      const response = await apiRequest(method, endpoint, data);
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/stores', store?.id, 'inventory'] });
-      setAddDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Medication added to inventory successfully.",
+        title: isEditMode ? "Inventory Updated" : "Product Added",
+        description: isEditMode 
+          ? "The inventory item has been updated successfully." 
+          : "The product has been added to your inventory.",
+        variant: "default",
       });
+      
+      // Invalidate and refetch inventory data
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", selectedStore?.id, "inventory"] });
+      
+      // Reset form and close dialog
+      setInventoryFormData({ medicationId: 0, price: 0, quantity: 0 });
+      setInventoryDialogOpen(false);
+      setIsEditMode(false);
+      setCurrentInventoryId(null);
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to add medication to inventory.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update inventory mutation
-  const updateInventoryMutation = useMutation({
-    mutationFn: async (data: UpdateInventoryFormValues) => {
-      if (!store) throw new Error("Store not found");
-      
-      return apiRequest("PATCH", `/api/stores/${store.id}/inventory/${data.id}`, {
-        quantity: data.quantity,
-        price: data.price,
-        inStock: data.inStock,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/stores', store?.id, 'inventory'] });
-      setUpdateDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Inventory updated successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update inventory.",
+        description: `Failed to ${isEditMode ? "update" : "add"} inventory: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -237,180 +195,108 @@ const StoreDashboard = () => {
 
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: number, status: "pending" | "confirmed" | "ready" | "completed" | "cancelled" }) => {
-      return apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
+    mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
+      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders/store', store?.id] });
-      setOrderStatusDialogOpen(false);
       toast({
-        title: "Success",
-        description: "Order status updated successfully.",
+        title: "Order Updated",
+        description: "The order status has been updated successfully.",
+        variant: "default",
       });
+      
+      // Invalidate and refetch orders data
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/store", selectedStore?.id] });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update order status.",
+        description: `Failed to update order status: ${error.message}`,
         variant: "destructive",
       });
     },
   });
 
-  // Form for adding medication to inventory
-  const addInventoryForm = useForm<AddInventoryFormValues>({
-    resolver: zodResolver(addInventorySchema),
-    defaultValues: {
-      medicationId: "",
-      quantity: 1,
-      price: 0,
-      inStock: true,
-    },
-  });
+  // Handle inventory form submission
+  const handleInventorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    inventoryMutation.mutate(inventoryFormData);
+  };
 
-  // Form for updating inventory
-  const updateInventoryForm = useForm<UpdateInventoryFormValues>({
-    resolver: zodResolver(updateInventorySchema),
-    defaultValues: {
-      id: 0,
-      quantity: 0,
-      price: 0,
-      inStock: true,
-    },
-  });
+  // Handle order status change
+  const handleOrderStatusChange = (orderId: number, status: string) => {
+    updateOrderStatusMutation.mutate({ orderId, status });
+  };
 
-  // Form for updating order status
-  const updateOrderStatusForm = useForm<UpdateOrderStatusFormValues>({
-    resolver: zodResolver(updateOrderStatusSchema),
-    defaultValues: {
-      status: "pending",
-    },
-  });
-
-  // Effect to reset form when dialog opens
-  useEffect(() => {
-    if (addDialogOpen) {
-      addInventoryForm.reset({
-        medicationId: "",
-        quantity: 1,
-        price: 0,
-        inStock: true,
-      });
-    }
-  }, [addDialogOpen, addInventoryForm]);
-
-  // Handle opening update dialog
-  const handleOpenUpdateDialog = (item: StoreInventoryItem) => {
-    updateInventoryForm.reset({
-      id: item.id,
-      quantity: item.quantity,
+  // Function to open edit inventory dialog
+  const openEditInventoryDialog = (item: StoreInventory) => {
+    setInventoryFormData({
+      medicationId: item.medicationId,
       price: item.price,
-      inStock: item.inStock,
+      quantity: item.quantity,
     });
-    setUpdateDialogOpen(true);
+    setCurrentInventoryId(item.id);
+    setIsEditMode(true);
+    setInventoryDialogOpen(true);
   };
 
-  // Handle opening order status dialog
-  const handleOpenOrderStatusDialog = (order: Order) => {
-    setSelectedOrderId(order.id);
-    updateOrderStatusForm.reset({
-      status: order.status,
-    });
-    setOrderStatusDialogOpen(true);
+  // Function to open add new inventory dialog
+  const openAddInventoryDialog = () => {
+    setInventoryFormData({ medicationId: 0, price: 0, quantity: 0 });
+    setIsEditMode(false);
+    setCurrentInventoryId(null);
+    setInventoryDialogOpen(true);
   };
 
-  // Handle add inventory submission
-  const onAddInventorySubmit: SubmitHandler<AddInventoryFormValues> = (data) => {
-    addInventoryMutation.mutate(data);
-  };
+  const filteredInventory = inventory.filter(item => 
+    item.medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.medication.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  // Handle update inventory submission
-  const onUpdateInventorySubmit: SubmitHandler<UpdateInventoryFormValues> = (data) => {
-    updateInventoryMutation.mutate(data);
-  };
+  const pendingOrders = orders.filter(order => order.status === "pending");
+  const processingOrders = orders.filter(order => order.status === "processing");
+  const readyForPickupOrders = orders.filter(order => order.status === "ready");
+  const completedOrders = orders.filter(order => order.status === "completed");
+  const cancelledOrders = orders.filter(order => order.status === "cancelled");
 
-  // Handle update order status submission
-  const onUpdateOrderStatusSubmit: SubmitHandler<UpdateOrderStatusFormValues> = (data) => {
-    if (selectedOrderId) {
-      updateOrderStatusMutation.mutate({
-        orderId: selectedOrderId,
-        status: data.status,
-      });
-    }
-  };
-
-  // Filter inventory based on search
-  const filteredInventory = inventory
-    ? inventory.filter(item => 
-        item.medication.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.medication.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.medication.manufacturer?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
-
-  // Get available medications (not already in inventory)
-  const availableMedications = allMedications
-    ? allMedications.filter(med => 
-        !inventory?.some(item => item.medicationId === med.id)
-      )
-    : [];
-
-  // Filter orders by status if needed
-  const pendingOrders = orders
-    ? orders.filter(order => ["pending", "confirmed", "ready"].includes(order.status))
-    : [];
-
-  const completedOrders = orders
-    ? orders.filter(order => ["completed", "cancelled"].includes(order.status))
-    : [];
-
-  // Redirect if not a store owner
-  if (user && !user.isStore) {
+  // Redirect if user is not a store owner
+  if (!user?.isStore) {
     return (
-      <div className="container-custom py-10 text-center">
-        <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-4">
-          Access Denied
-        </h1>
-        <p className="text-neutral-600 mb-6">
-          This page is only accessible to store owners.
-        </p>
-        <Button onClick={() => setLocation("/")}>
-          Back to Home
+      <div className="container mx-auto py-10 text-center">
+        <h1 className="text-2xl font-semibold mb-4">Not Authorized</h1>
+        <p>You must be registered as a pharmacy store owner to access this page.</p>
+        <Button 
+          onClick={() => navigate("/")}
+          className="mt-4"
+        >
+          Go to Home Page
         </Button>
       </div>
     );
   }
 
-  // Loading state
-  if (storesLoading) {
+  if (isLoadingStores) {
     return (
-      <div className="container-custom py-10">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-3/4" />
-          <Skeleton className="h-6 w-1/2" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
-            <Skeleton className="h-40" />
-          </div>
+      <div className="container mx-auto py-10 text-center">
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p>Loading your pharmacy information...</p>
         </div>
       </div>
     );
   }
 
-  // No store created yet
-  if (!store) {
+  if (stores.length === 0) {
     return (
-      <div className="container-custom py-10 text-center">
-        <h1 className="text-2xl font-heading font-bold text-neutral-900 mb-4">
-          No Store Found
-        </h1>
-        <p className="text-neutral-600 mb-6">
-          You don't have a store yet. Please create one to access the dashboard.
-        </p>
-        <Button onClick={() => setLocation("/store/create")}>
-          Create Store
-        </Button>
+      <div className="container mx-auto py-10">
+        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+          <h1 className="text-2xl font-semibold mb-4">No Pharmacy Found</h1>
+          <p className="mb-6">You don't have any pharmacy registered yet. Create your first pharmacy to manage your business on E Pharma.</p>
+          <Button onClick={() => navigate("/create-pharmacy")}>
+            Create Your Pharmacy
+          </Button>
+        </div>
       </div>
     );
   }
@@ -418,511 +304,799 @@ const StoreDashboard = () => {
   return (
     <>
       <Helmet>
-        <title>Store Dashboard - MediFind</title>
-        <meta name="description" content="Manage your pharmacy store, inventory, and orders." />
+        <title>{selectedStore?.name ? `${selectedStore.name} Dashboard` : "Pharmacy Dashboard"} - E Pharma</title>
+        <meta 
+          name="description" 
+          content="Manage your pharmacy store, inventory, and orders with E Pharma's pharmacy dashboard."
+        />
       </Helmet>
-      
-      <div className="bg-primary-500 py-6">
-        <div className="container-custom">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-2xl font-heading font-bold text-white">Store Dashboard</h1>
-              <p className="text-primary-100">{store.name}</p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <Button 
-                variant="outline" 
-                className="bg-white hover:bg-neutral-100 text-primary-600 border-transparent"
-                onClick={() => setLocation(`/stores/${store.id}`)}
-              >
-                View Store Page
-              </Button>
-            </div>
+
+      <div className="container mx-auto py-8">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Pharmacy Dashboard</h1>
+            <p className="text-gray-600 mt-1">Manage your pharmacy, inventory, and orders</p>
           </div>
+
+          {stores.length > 1 && (
+            <div className="mt-4 md:mt-0">
+              <Select
+                value={selectedStore?.id.toString() || ""}
+                onValueChange={(value) => {
+                  const store = stores.find(s => s.id.toString() === value);
+                  if (store) setSelectedStore(store);
+                }}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select pharmacy" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map((store) => (
+                    <SelectItem key={store.id} value={store.id.toString()}>
+                      {store.name} ({store.city})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
-      </div>
-      
-      <div className="container-custom py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-2 w-full max-w-md mb-6">
-            <TabsTrigger value="inventory">Inventory</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-          </TabsList>
-          
-          {/* Inventory Tab */}
-          <TabsContent value="inventory">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-heading font-semibold">Inventory Management</h2>
-                <p className="text-neutral-500">Manage your medications and stock</p>
-              </div>
-              <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-4">
-                <div className="relative">
-                  <Input 
-                    placeholder="Search medications..." 
-                    className="w-full sm:w-64"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>Add Medication</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Medication to Inventory</DialogTitle>
-                      <DialogDescription>
-                        Add a new medication to your store's inventory.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Form {...addInventoryForm}>
-                      <form onSubmit={addInventoryForm.handleSubmit(onAddInventorySubmit)} className="space-y-4">
-                        <FormField
-                          control={addInventoryForm.control}
-                          name="medicationId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Medication</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a medication" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {availableMedications.map((med) => (
-                                    <SelectItem key={med.id} value={med.id.toString()}>
-                                      {med.name} ({med.dosage})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addInventoryForm.control}
-                          name="quantity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Quantity</FormLabel>
-                              <FormControl>
-                                <Input type="number" min="1" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addInventoryForm.control}
-                          name="price"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Price (PKR)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" min="0.01" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addInventoryForm.control}
-                          name="inStock"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-base">Available</FormLabel>
-                                <FormDescription>
-                                  Mark this medication as available in your store
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <DialogFooter>
-                          <Button 
-                            type="submit" 
-                            disabled={addInventoryMutation.isPending || medicationsLoading}
-                          >
-                            {addInventoryMutation.isPending ? "Adding..." : "Add to Inventory"}
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </div>
-            
-            {inventoryLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : filteredInventory.length === 0 ? (
-              <div className="text-center py-12 border rounded-lg">
-                <div className="bg-neutral-100 mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                  <i className="ri-medicine-bottle-line text-2xl text-neutral-500"></i>
-                </div>
-                <h3 className="text-xl font-heading font-medium text-neutral-900 mb-2">No Medications in Inventory</h3>
-                <p className="text-neutral-600 mb-6 max-w-md mx-auto">
-                  {searchQuery 
-                    ? "No medications match your search criteria. Try a different search term." 
-                    : "Your inventory is empty. Add medications to get started."}
-                </p>
-                {searchQuery && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setSearchQuery("")}
-                  >
-                    Clear Search
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Medication</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInventory.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <div className="w-10 h-10 rounded bg-neutral-100 flex items-center justify-center mr-3">
-                              {item.medication.imageUrl ? (
-                                <img 
-                                  src={item.medication.imageUrl} 
-                                  alt={item.medication.name} 
-                                  className="w-full h-full object-cover rounded"
-                                />
-                              ) : (
-                                <i className="ri-medicine-bottle-line text-neutral-400"></i>
-                              )}
-                            </div>
-                            <div>
-                              <div>{item.medication.name}</div>
-                              <div className="text-xs text-neutral-500">{item.medication.dosage}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.medication.category || "—"}</TableCell>
-                        <TableCell>{formatCurrency(item.price)}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>
-                          <Badge variant={item.inStock && item.quantity > 0 ? "default" : "destructive"} className={item.inStock && item.quantity > 0 ? "bg-green-500 hover:bg-green-600" : ""}>
-                            {item.inStock && item.quantity > 0 ? "In Stock" : "Out of Stock"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleOpenUpdateDialog(item)}
-                          >
-                            Update
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
 
-            {/* Update Inventory Dialog */}
-            <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Update Inventory</DialogTitle>
-                  <DialogDescription>
-                    Update the inventory details for this medication.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...updateInventoryForm}>
-                  <form onSubmit={updateInventoryForm.handleSubmit(onUpdateInventorySubmit)} className="space-y-4">
-                    <FormField
-                      control={updateInventoryForm.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantity</FormLabel>
-                          <FormControl>
-                            <Input type="number" min="0" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={updateInventoryForm.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price (PKR)</FormLabel>
-                          <FormControl>
-                            <Input type="number" step="0.01" min="0.01" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={updateInventoryForm.control}
-                      name="inStock"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">Available</FormLabel>
-                            <FormDescription>
-                              Mark this medication as available in your store
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        disabled={updateInventoryMutation.isPending}
-                      >
-                        {updateInventoryMutation.isPending ? "Updating..." : "Update Inventory"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
-          
-          {/* Orders Tab */}
-          <TabsContent value="orders">
-            <div className="space-y-8">
-              {/* Active Orders */}
-              <div>
-                <h2 className="text-xl font-heading font-semibold mb-4">Active Orders</h2>
-                {ordersLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                  </div>
-                ) : pendingOrders.length === 0 ? (
-                  <div className="text-center py-8 border rounded-lg">
-                    <div className="bg-neutral-100 mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4">
-                      <i className="ri-shopping-bag-line text-2xl text-neutral-500"></i>
+        {selectedStore && (
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-6">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="inventory">Inventory</TabsTrigger>
+              <TabsTrigger value="orders">Orders</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Inventory Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-3xl font-bold">{inventory.length}</p>
+                        <p className="text-sm text-muted-foreground">Products</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">
+                          {inventory.filter(item => item.inStock && item.quantity > 0).length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">In Stock</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold">
+                          {inventory.filter(item => !item.inStock || item.quantity === 0).length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">Out of Stock</p>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-heading font-medium text-neutral-900 mb-2">No Active Orders</h3>
-                    <p className="text-neutral-600 max-w-md mx-auto">
-                      You don't have any active orders at the moment.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                    {pendingOrders.map((order) => (
-                      <Card key={order.id}>
-                        <CardHeader className="pb-4">
-                          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-                            <div>
-                              <CardTitle className="flex items-center">
-                                Order #{order.id}
-                                <Badge className="ml-3" variant={
-                                  order.status === "pending" ? "default" :
-                                  order.status === "confirmed" ? "secondary" :
-                                  order.status === "ready" ? "outline" :
-                                  "default"
-                                }>
-                                  {order.status === "pending" ? "Pending" :
-                                   order.status === "confirmed" ? "Confirmed" :
-                                   order.status === "ready" ? "Ready for Pickup" :
-                                   order.status}
-                                </Badge>
-                              </CardTitle>
-                              <CardDescription>
-                                {new Date(order.createdAt).toLocaleDateString()} • 
-                                {order.pickupTime ? ` Pickup: ${order.pickupTime}` : ' No pickup time specified'}
-                              </CardDescription>
-                            </div>
-                            <div className="mt-4 md:mt-0">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenOrderStatusDialog(order)}
-                              >
-                                Update Status
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="space-y-4">
-                            <div>
-                              <h4 className="text-sm font-medium mb-2">Customer Information</h4>
-                              <div className="text-sm text-neutral-600">
-                                <p>{order.user.firstName} {order.user.lastName}</p>
-                                <p>{order.user.phone || "No phone provided"}</p>
-                                <p>{order.user.address}, {order.user.city}</p>
-                              </div>
-                            </div>
-                            <Separator />
-                            <div>
-                              <h4 className="text-sm font-medium mb-2">Order Items</h4>
-                              <ul className="space-y-2 text-sm">
-                                {order.items.map((item) => (
-                                  <li key={item.id} className="flex justify-between">
-                                    <span>{item.quantity}x {item.medication.name} ({item.medication.dosage})</span>
-                                    <span className="font-medium">{formatCurrency(item.price * item.quantity)}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="border-t pt-4 flex justify-between">
-                          <div>
-                            {order.notes && (
-                              <p className="text-sm text-neutral-600">
-                                <span className="font-medium">Notes:</span> {order.notes}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-lg font-bold">
-                            {formatCurrency(order.totalAmount)}
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => {
+                        const tabButton = document.querySelector('[data-state="inactive"][value="inventory"]') as HTMLButtonElement;
+                        if (tabButton) tabButton.click();
+                      }}
+                    >
+                      Manage Inventory
+                    </Button>
+                  </CardFooter>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Orders Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="flex flex-col items-center p-2 bg-yellow-50 rounded-md">
+                        <p className="text-xl font-bold text-yellow-600">{pendingOrders.length}</p>
+                        <p className="text-xs text-yellow-600">Pending</p>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-blue-50 rounded-md">
+                        <p className="text-xl font-bold text-blue-600">{processingOrders.length}</p>
+                        <p className="text-xs text-blue-600">Processing</p>
+                      </div>
+                      <div className="flex flex-col items-center p-2 bg-green-50 rounded-md">
+                        <p className="text-xl font-bold text-green-600">{readyForPickupOrders.length}</p>
+                        <p className="text-xs text-green-600">Ready</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => {
+                        const tabButton = document.querySelector('[data-state="inactive"][value="orders"]') as HTMLButtonElement;
+                        if (tabButton) tabButton.click();
+                      }}
+                    >
+                      Manage Orders
+                    </Button>
+                  </CardFooter>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Store Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">Name:</span>
+                      <span>{selectedStore.name}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">Address:</span>
+                      <span>{selectedStore.address}, {selectedStore.city}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">Contact:</span>
+                      <span>{selectedStore.phone}</span>
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => {
+                        const tabButton = document.querySelector('[data-state="inactive"][value="settings"]') as HTMLButtonElement;
+                        if (tabButton) tabButton.click();
+                      }}
+                    >
+                      Edit Store Information
+                    </Button>
+                  </CardFooter>
+                </Card>
               </div>
 
-              {/* Completed/Cancelled Orders */}
-              <div>
-                <h2 className="text-xl font-heading font-semibold mb-4">Order History</h2>
-                {ordersLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-20 w-full" />
+              {pendingOrders.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-semibold mb-4">New Orders Requiring Attention</h2>
+                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Order ID
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Total
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {pendingOrders.slice(0, 5).map((order) => (
+                            <tr key={order.id}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                #{order.id}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {order.user.firstName} {order.user.lastName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatDate(order.createdAt)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {formatCurrency(order.totalAmount)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
+                                  Pending
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <Select
+                                  value={order.status}
+                                  onValueChange={(value) => handleOrderStatusChange(order.id, value)}
+                                  disabled={updateOrderStatusMutation.isPending}
+                                >
+                                  <SelectTrigger className="h-8 w-[120px]">
+                                    <SelectValue placeholder="Update" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="processing">Processing</SelectItem>
+                                    <SelectItem value="ready">Ready for Pickup</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {pendingOrders.length > 5 && (
+                      <div className="px-6 py-3">
+                        <Button 
+                          variant="link" 
+                          className="text-primary-500" 
+                          onClick={() => {
+                            const tabButton = document.querySelector('[data-state="inactive"][value="orders"]') as HTMLButtonElement;
+                            if (tabButton) tabButton.click();
+                          }}
+                        >
+                          View all {pendingOrders.length} pending orders
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                ) : completedOrders.length === 0 ? (
-                  <div className="text-center py-8 border rounded-lg">
-                    <h3 className="text-xl font-heading font-medium text-neutral-900 mb-2">No Order History</h3>
-                    <p className="text-neutral-600 max-w-md mx-auto">
-                      You don't have any completed or cancelled orders yet.
-                    </p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="inventory">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-xl font-semibold">Inventory Management</h2>
+                    <p className="text-gray-600 text-sm">Manage your store's products, prices, and stock levels</p>
                   </div>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Order #</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Items</TableHead>
-                          <TableHead>Total</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {completedOrders.map((order) => (
-                          <TableRow key={order.id}>
-                            <TableCell className="font-medium">#{order.id}</TableCell>
-                            <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                            <TableCell>{order.user.firstName} {order.user.lastName}</TableCell>
-                            <TableCell>{order.items.length} items</TableCell>
-                            <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={order.status === "completed" ? "default" : "destructive"} 
-                                className={order.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}>
-                                {order.status === "completed" ? "Completed" : "Cancelled"}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <Input 
+                      type="search" 
+                      placeholder="Search products..." 
+                      className="w-full sm:w-64" 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Button onClick={openAddInventoryDialog}>
+                      Add Product
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  {isLoadingInventory ? (
+                    <div className="p-8 text-center">
+                      <div className="flex justify-center mb-4">
+                        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <p>Loading inventory...</p>
+                    </div>
+                  ) : filteredInventory.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-gray-500 mb-4">No products found in your inventory.</p>
+                      <Button onClick={openAddInventoryDialog}>
+                        Add Your First Product
+                      </Button>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Product
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Price
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stock
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {filteredInventory.map((item) => (
+                          <tr key={item.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 flex-shrink-0">
+                                  {item.medication.imageUrl ? (
+                                    <img 
+                                      src={item.medication.imageUrl} 
+                                      alt={item.medication.name} 
+                                      className="h-10 w-10 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                      <i className="ri-capsule-line text-gray-500"></i>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{item.medication.name}</div>
+                                  <div className="text-sm text-gray-500">{item.medication.dosage}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.medication.category || "General"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatCurrency(item.price)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {item.quantity}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {item.inStock && item.quantity > 0 ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                  In Stock
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+                                  Out of Stock
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => openEditInventoryDialog(item)}
+                              >
+                                Edit
+                              </Button>
+                            </td>
+                          </tr>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="orders">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="p-6">
+                  <h2 className="text-xl font-semibold">Order Management</h2>
+                  <p className="text-gray-600 text-sm">View and manage orders from your customers</p>
+                </div>
+
+                <div className="overflow-x-auto">
+                  {isLoadingOrders ? (
+                    <div className="p-8 text-center">
+                      <div className="flex justify-center mb-4">
+                        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <p>Loading orders...</p>
+                    </div>
+                  ) : orders.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-gray-500">No orders found for your pharmacy yet.</p>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Order ID
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Customer
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Date
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Pickup Time
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Total
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {orders.map((order) => (
+                          <tr key={order.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              #{order.id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {order.user.firstName} {order.user.lastName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatDate(order.createdAt)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatDate(order.pickupTime)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatCurrency(order.totalAmount)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <StatusBadge status={order.status} />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    View Details
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-3xl">
+                                  <DialogHeader>
+                                    <DialogTitle>Order #{order.id} Details</DialogTitle>
+                                    <DialogDescription>
+                                      Placed on {formatDate(order.createdAt)}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-4">
+                                    <div>
+                                      <h4 className="text-sm font-medium text-gray-500 mb-2">Customer Information</h4>
+                                      <p><span className="font-medium">Name:</span> {order.user.firstName} {order.user.lastName}</p>
+                                      <p><span className="font-medium">Phone:</span> {order.user.phone || "Not provided"}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-medium text-gray-500 mb-2">Order Information</h4>
+                                      <p><span className="font-medium">Status:</span> <StatusBadge status={order.status} /></p>
+                                      <p><span className="font-medium">Pickup Time:</span> {formatDate(order.pickupTime)}</p>
+                                      <p><span className="font-medium">Total Amount:</span> {formatCurrency(order.totalAmount)}</p>
+                                    </div>
+                                  </div>
+
+                                  <Separator />
+
+                                  <div className="my-4">
+                                    <h4 className="text-sm font-medium text-gray-500 mb-2">Order Items</h4>
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                          <tr>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                              Product
+                                            </th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                              Quantity
+                                            </th>
+                                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                              Price
+                                            </th>
+                                            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                              Total
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                          {order.items.map((item) => (
+                                            <tr key={item.id}>
+                                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                                {item.medication.name} ({item.medication.dosage})
+                                              </td>
+                                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                {item.quantity}
+                                              </td>
+                                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                                {formatCurrency(item.price)}
+                                              </td>
+                                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                                                {formatCurrency(item.price * item.quantity)}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                        <tfoot>
+                                          <tr>
+                                            <td colSpan={3} className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                              Total:
+                                            </td>
+                                            <td className="px-4 py-2 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
+                                              {formatCurrency(order.totalAmount)}
+                                            </td>
+                                          </tr>
+                                        </tfoot>
+                                      </table>
+                                    </div>
+                                  </div>
+
+                                  <Separator />
+
+                                  <div className="mt-4">
+                                    <Label htmlFor="status">Update Status</Label>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Select
+                                        defaultValue={order.status}
+                                        onValueChange={(value) => handleOrderStatusChange(order.id, value)}
+                                        disabled={updateOrderStatusMutation.isPending}
+                                      >
+                                        <SelectTrigger className="w-[200px]">
+                                          <SelectValue placeholder="Select status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="pending">Pending</SelectItem>
+                                          <SelectItem value="processing">Processing</SelectItem>
+                                          <SelectItem value="ready">Ready for Pickup</SelectItem>
+                                          <SelectItem value="completed">Completed</SelectItem>
+                                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <Button disabled={updateOrderStatusMutation.isPending}>
+                                        {updateOrderStatusMutation.isPending ? "Updating..." : "Update"}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </DialogContent>
+                              </Dialog>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+                <h2 className="text-xl font-semibold mb-4">Store Settings</h2>
+                <p className="text-gray-600 text-sm mb-6">Update your pharmacy's information and settings</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Pharmacy Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="storeName">Pharmacy Name</Label>
+                        <Input 
+                          id="storeName" 
+                          value={selectedStore.name} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="storeAddress">Address</Label>
+                        <Input 
+                          id="storeAddress" 
+                          value={selectedStore.address} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="storeCity">City</Label>
+                        <Input 
+                          id="storeCity" 
+                          value={selectedStore.city} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="storeZipCode">Zip Code</Label>
+                        <Input 
+                          id="storeZipCode" 
+                          value={selectedStore.zipCode} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
                   </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Contact Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="storePhone">Phone Number</Label>
+                        <Input 
+                          id="storePhone" 
+                          value={selectedStore.phone} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="storeEmail">Email Address</Label>
+                        <Input 
+                          id="storeEmail" 
+                          value={selectedStore.email} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="storeHours">Opening Hours</Label>
+                        <Input 
+                          id="storeHours" 
+                          value={selectedStore.openingHours} 
+                          disabled
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-8 flex justify-end space-x-4">
+                  <Button variant="outline" onClick={() => navigate(`/stores/${selectedStore.id}`)}>
+                    View Public Profile
+                  </Button>
+                  <Button className="bg-primary-500" disabled>
+                    Edit Information
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
+
+      {/* Add/Edit Inventory Dialog */}
+      <Dialog open={inventoryDialogOpen} onOpenChange={setInventoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? "Edit Inventory Item" : "Add New Product"}</DialogTitle>
+            <DialogDescription>
+              {isEditMode 
+                ? "Update the product's price and stock quantity." 
+                : "Add a new product to your pharmacy's inventory."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleInventorySubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="medicationId">Product</Label>
+                {isEditMode ? (
+                  <Input 
+                    id="medicationId"
+                    value={medications.find(m => m.id === inventoryFormData.medicationId)?.name || ""}
+                    disabled
+                  />
+                ) : (
+                  <Select
+                    value={inventoryFormData.medicationId ? inventoryFormData.medicationId.toString() : ""}
+                    onValueChange={(value) => setInventoryFormData({ 
+                      ...inventoryFormData, 
+                      medicationId: parseInt(value),
+                      price: medications.find(m => m.id === parseInt(value))?.price || 0
+                    })}
+                    disabled={isLoadingMedications}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {medications
+                        .filter(medication => 
+                          !inventory.some(item => 
+                            item.medicationId === medication.id
+                          )
+                        )
+                        .map((medication) => (
+                          <SelectItem key={medication.id} value={medication.id.toString()}>
+                            {medication.name} ({medication.dosage})
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">Price (Rs)</Label>
+                <Input 
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={inventoryFormData.price}
+                  onChange={(e) => setInventoryFormData({ 
+                    ...inventoryFormData, 
+                    price: parseFloat(e.target.value) 
+                  })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="quantity">Quantity in Stock</Label>
+                <Input 
+                  id="quantity"
+                  type="number"
+                  min="0"
+                  value={inventoryFormData.quantity}
+                  onChange={(e) => setInventoryFormData({ 
+                    ...inventoryFormData, 
+                    quantity: parseInt(e.target.value) 
+                  })}
+                  required
+                />
               </div>
             </div>
-
-            {/* Update Order Status Dialog */}
-            <Dialog open={orderStatusDialogOpen} onOpenChange={setOrderStatusDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Update Order Status</DialogTitle>
-                  <DialogDescription>
-                    Change the status of this order to track its progress.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...updateOrderStatusForm}>
-                  <form onSubmit={updateOrderStatusForm.handleSubmit(onUpdateOrderStatusSubmit)} className="space-y-4">
-                    <FormField
-                      control={updateOrderStatusForm.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="confirmed">Confirmed</SelectItem>
-                              <SelectItem value="ready">Ready for Pickup</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <DialogFooter>
-                      <Button 
-                        type="submit" 
-                        disabled={updateOrderStatusMutation.isPending}
-                      >
-                        {updateOrderStatusMutation.isPending ? "Updating..." : "Update Status"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
-        </Tabs>
-      </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setInventoryDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={inventoryMutation.isPending || !inventoryFormData.medicationId}
+              >
+                {inventoryMutation.isPending ? "Saving..." : isEditMode ? "Save Changes" : "Add Product"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
+};
+
+// Helper component for rendering order status badges
+const StatusBadge = ({ status }: { status: string }) => {
+  switch (status) {
+    case "pending":
+      return (
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
+          Pending
+        </Badge>
+      );
+    case "processing":
+      return (
+        <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+          Processing
+        </Badge>
+      );
+    case "ready":
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+          Ready for Pickup
+        </Badge>
+      );
+    case "completed":
+      return (
+        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+          Completed
+        </Badge>
+      );
+    case "cancelled":
+      return (
+        <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
+          Cancelled
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-300">
+          {status}
+        </Badge>
+      );
+  }
 };
 
 export default StoreDashboard;
