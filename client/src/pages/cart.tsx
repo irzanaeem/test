@@ -343,7 +343,7 @@ const CartPage = () => {
                     <div className="flex justify-end">
                       <Button
                         variant="default"
-                        className="mt-4"
+                        className="mt-4 shadow-md border border-primary-600"
                         onClick={() => handleCheckout(Number(storeId))}
                         disabled={checkoutMutation.isPending}
                       >
@@ -381,7 +381,7 @@ const CartPage = () => {
                 <div className="mt-6">
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full shadow-sm border border-neutral-300"
                     onClick={() => setLocation("/")}
                   >
                     Continue Shopping
