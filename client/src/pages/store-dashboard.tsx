@@ -95,7 +95,7 @@ interface Order {
   id: number;
   userId: number;
   storeId: number;
-  status: string;
+  status: "pending" | "confirmed" | "ready" | "completed" | "cancelled";
   totalAmount: number;
   createdAt: string;
   pickupTime?: string;
@@ -245,7 +245,7 @@ const StoreDashboard = () => {
 
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
-    mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
+    mutationFn: async ({ orderId, status }: { orderId: number, status: "pending" | "confirmed" | "ready" | "completed" | "cancelled" }) => {
       return apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
     },
     onSuccess: () => {
@@ -636,7 +636,7 @@ const StoreDashboard = () => {
                         <TableCell>{formatCurrency(item.price)}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>
-                          <Badge variant={item.inStock && item.quantity > 0 ? "success" : "destructive"}>
+                          <Badge variant={item.inStock && item.quantity > 0 ? "default" : "destructive"} className={item.inStock && item.quantity > 0 ? "bg-green-500 hover:bg-green-600" : ""}>
                             {item.inStock && item.quantity > 0 ? "In Stock" : "Out of Stock"}
                           </Badge>
                         </TableCell>
