@@ -121,24 +121,16 @@ interface Order {
 // Schema for adding medication to inventory
 const addInventorySchema = z.object({
   medicationId: z.string().min(1, "Please select a medication"),
-  quantity: z.string().transform(val => parseInt(val, 10)).pipe(
-    z.number().min(1, "Quantity must be at least 1")
-  ),
-  price: z.string().transform(val => parseFloat(val)).pipe(
-    z.number().min(0.01, "Price must be greater than 0")
-  ),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   inStock: z.boolean().default(true),
 });
 
 // Schema for updating inventory item
 const updateInventorySchema = z.object({
   id: z.number(),
-  quantity: z.string().transform(val => parseInt(val, 10)).pipe(
-    z.number().min(0, "Quantity cannot be negative")
-  ),
-  price: z.string().transform(val => parseFloat(val)).pipe(
-    z.number().min(0.01, "Price must be greater than 0")
-  ),
+  quantity: z.coerce.number().min(0, "Quantity cannot be negative"),
+  price: z.coerce.number().min(0.01, "Price must be greater than 0"),
   inStock: z.boolean(),
 });
 
@@ -270,8 +262,8 @@ const StoreDashboard = () => {
     resolver: zodResolver(addInventorySchema),
     defaultValues: {
       medicationId: "",
-      quantity: "1",
-      price: "",
+      quantity: 1,
+      price: 0,
       inStock: true,
     },
   });
@@ -281,8 +273,8 @@ const StoreDashboard = () => {
     resolver: zodResolver(updateInventorySchema),
     defaultValues: {
       id: 0,
-      quantity: "0",
-      price: "",
+      quantity: 0,
+      price: 0,
       inStock: true,
     },
   });
@@ -300,8 +292,8 @@ const StoreDashboard = () => {
     if (addDialogOpen) {
       addInventoryForm.reset({
         medicationId: "",
-        quantity: "1",
-        price: "",
+        quantity: 1,
+        price: 0,
         inStock: true,
       });
     }
@@ -311,8 +303,8 @@ const StoreDashboard = () => {
   const handleOpenUpdateDialog = (item: StoreInventoryItem) => {
     updateInventoryForm.reset({
       id: item.id,
-      quantity: item.quantity.toString(),
-      price: item.price.toString(),
+      quantity: item.quantity,
+      price: item.price,
       inStock: item.inStock,
     });
     setUpdateDialogOpen(true);
@@ -864,7 +856,9 @@ const StoreDashboard = () => {
                             <TableCell>{order.items.length} items</TableCell>
                             <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
                             <TableCell>
-                              <Badge variant={order.status === "completed" ? "success" : "destructive"}>
+                              <Badge 
+                                variant={order.status === "completed" ? "default" : "destructive"} 
+                                className={order.status === "completed" ? "bg-green-500 hover:bg-green-600" : ""}>
                                 {order.status === "completed" ? "Completed" : "Cancelled"}
                               </Badge>
                             </TableCell>
