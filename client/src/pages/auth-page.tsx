@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { pakistanCities } from "@shared/schema";
+import Select from 'react-select';
 
 // Convert readonly array to mutable for zod enum
 const cityArray = [...pakistanCities] as [string, ...string[]];
@@ -37,12 +38,12 @@ import {
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Controller } from "react-hook-form";
 
 // Login form schema
 const loginSchema = z.object({
@@ -72,6 +73,35 @@ const signupSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
+
+const cityOptions = pakistanCities.map(city => ({ value: city, label: city }));
+
+const customSelectStyles = {
+  control: (provided, state) => ({
+    ...provided,
+    borderColor: '#4F6BED',
+    boxShadow: state.isFocused ? '0 0 0 2px #4F6BED33' : provided.boxShadow,
+    '&:hover': { borderColor: '#4F6BED' },
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isSelected
+      ? '#4F6BED'
+      : state.isFocused
+      ? '#4F6BED22'
+      : '#fff',
+    color: state.isSelected ? '#fff' : '#4F6BED',
+    '&:active': { backgroundColor: '#4F6BED' },
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: '#4F6BED',
+  }),
+  dropdownIndicator: (provided) => ({
+    ...provided,
+    color: '#4F6BED',
+  }),
+};
 
 const AuthPage = () => {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -134,50 +164,50 @@ const AuthPage = () => {
         />
       </Helmet>
       
-      <div className="min-h-screen bg-neutral-50 py-12">
+      <div className="min-h-screen bg-white py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
-          <div className="flex flex-col md:flex-row overflow-hidden rounded-lg shadow-xl">
+          <div className="flex flex-col md:flex-row overflow-hidden rounded-lg shadow-xl bg-white">
             {/* Hero Section - Left on mobile, right on desktop */}
-            <div className="md:w-1/2 bg-gradient-to-br from-primary-500 to-primary-700 text-white p-8 md:p-12">
+            <div className="md:w-1/2 bg-white text-primary-700 p-8 md:p-12 border-r border-gray-200">
               <div className="h-full flex flex-col justify-center">
-                <h1 className="text-4xl font-heading font-bold leading-tight mb-4">
+                <h1 className="text-4xl font-heading font-bold leading-tight mb-4 text-[#4F6BED]">
                   Find Medications Nearby
                 </h1>
-                <p className="text-lg mb-8 text-primary-50">
+                <p className="text-lg mb-8 text-[#4F6BED]">
                   Connect with local pharmacies in your city and find the medications you need, all in one place.
                 </p>
                 <div className="space-y-6">
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-primary-400 bg-opacity-20 p-2 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="flex-shrink-0 bg-[#4F6BED] bg-opacity-20 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4F6BED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg font-medium">Find Local Pharmacies</h3>
-                      <p className="text-primary-100">Browse and compare pharmacies in your area</p>
+                      <h3 className="text-lg font-medium text-[#4F6BED]">Find Local Pharmacies</h3>
+                      <p className="text-[#4F6BED] opacity-70">Browse and compare pharmacies in your area</p>
                     </div>
                   </div>
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-primary-400 bg-opacity-20 p-2 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="flex-shrink-0 bg-[#4F6BED] bg-opacity-20 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4F6BED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg font-medium">Scan Prescriptions</h3>
-                      <p className="text-primary-100">Use our OCR technology to scan your prescription</p>
+                      <h3 className="text-lg font-medium text-[#4F6BED]">Scan Prescriptions</h3>
+                      <p className="text-[#4F6BED] opacity-70">Use our OCR technology to scan your prescription</p>
                     </div>
                   </div>
                   <div className="flex items-start">
-                    <div className="flex-shrink-0 bg-primary-400 bg-opacity-20 p-2 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="flex-shrink-0 bg-[#4F6BED] bg-opacity-20 p-2 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#4F6BED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg font-medium">Easy Ordering</h3>
-                      <p className="text-primary-100">Place orders for pickup with just a few clicks</p>
+                      <h3 className="text-lg font-medium text-[#4F6BED]">Easy Ordering</h3>
+                      <p className="text-[#4F6BED] opacity-70">Place orders for pickup with just a few clicks</p>
                     </div>
                   </div>
                 </div>
@@ -185,20 +215,18 @@ const AuthPage = () => {
             </div>
             
             {/* Auth Forms */}
-            <div className="md:w-1/2 bg-white p-8">
+            <div className="md:w-1/2 bg-white p-8 md:p-12 flex flex-col justify-center">
               <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-2 mb-8">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-white border border-[#4F6BED] rounded-lg overflow-hidden">
+                  <TabsTrigger value="login" className="text-[#4F6BED] data-[state=active]:bg-[#4F6BED]/10 data-[state=active]:text-[#4F6BED]">Login</TabsTrigger>
+                  <TabsTrigger value="signup" className="text-[#4F6BED] data-[state=active]:bg-[#4F6BED]/10 data-[state=active]:text-[#4F6BED]">Sign Up</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="login">
-                  <Card>
+                  <Card className="bg-white text-[#4F6BED] border border-[#4F6BED]">
                     <CardHeader>
-                      <CardTitle>Sign in to your account</CardTitle>
-                      <CardDescription>
-                        Enter your username and password to access your account
-                      </CardDescription>
+                      <CardTitle className="text-[#4F6BED]">Sign in to your account</CardTitle>
+                      <CardDescription className="text-[#4F6BED] opacity-70">Enter your username and password to access your account</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Form {...loginForm}>
@@ -240,11 +268,11 @@ const AuthPage = () => {
                       </Form>
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
-                      <div className="text-sm text-center text-neutral-600">
+                      <div className="text-sm text-center text-[#4F6BED] opacity-70">
                         Don't have an account yet?{" "}
                         <button 
                           onClick={() => setActiveTab("signup")}
-                          className="text-primary-600 hover:underline font-medium"
+                          className="text-[#4F6BED] hover:underline font-medium"
                           type="button"
                         >
                           Create an account
@@ -255,12 +283,10 @@ const AuthPage = () => {
                 </TabsContent>
                 
                 <TabsContent value="signup">
-                  <Card>
+                  <Card className="bg-white text-[#4F6BED] border border-[#4F6BED]">
                     <CardHeader>
-                      <CardTitle>Create a new account</CardTitle>
-                      <CardDescription>
-                        Fill in your details to register for E Pharma
-                      </CardDescription>
+                      <CardTitle className="text-[#4F6BED]">Create a new account</CardTitle>
+                      <CardDescription className="text-[#4F6BED] opacity-70">Fill in your details to register for E Pharma</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Form {...signupForm}>
@@ -385,20 +411,21 @@ const AuthPage = () => {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>City</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select your city" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {pakistanCities.map((city) => (
-                                      <SelectItem key={city} value={city}>
-                                        {city}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <Controller
+                                  name="city"
+                                  control={signupForm.control}
+                                  render={({ field: { onChange, value, ref } }) => (
+                                    <Select
+                                      inputRef={ref}
+                                      options={cityOptions}
+                                      styles={customSelectStyles}
+                                      placeholder="Select your city"
+                                      value={cityOptions.find(option => option.value === value) || null}
+                                      onChange={option => onChange(option ? option.value : null)}
+                                      isClearable
+                                    />
+                                  )}
+                                />
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -476,11 +503,11 @@ const AuthPage = () => {
                       </Form>
                     </CardContent>
                     <CardFooter className="flex justify-center">
-                      <div className="text-sm text-center text-neutral-600">
+                      <div className="text-sm text-center text-[#4F6BED] opacity-70">
                         Already have an account?{" "}
                         <button 
                           onClick={() => setActiveTab("login")}
-                          className="text-primary-600 hover:underline font-medium"
+                          className="text-[#4F6BED] hover:underline font-medium"
                           type="button"
                         >
                           Sign in

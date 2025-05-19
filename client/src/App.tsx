@@ -20,6 +20,8 @@ import Orders from "@/pages/orders";
 import Notifications from "@/pages/notifications";
 import CreatePharmacy from "@/pages/create-pharmacy";
 import StoreDashboard from "@/pages/store-dashboard";
+import ProfilePage from "@/pages/profile";
+import MedicationsPage from "@/pages/medications";
 
 function Router() {
   const [location] = useLocation();
@@ -36,12 +38,14 @@ function Router() {
         <ProtectedRoute path="/stores" component={Stores} />
         <ProtectedRoute path="/stores/:id" component={StoreDetail} />
         <ProtectedRoute path="/medications/:id" component={MedicationDetail} />
+        <ProtectedRoute path="/prescription" component={MedicationsPage} />
         <ProtectedRoute path="/cart" component={Cart} />
         <ProtectedRoute path="/scanner" component={Scanner} />
         <ProtectedRoute path="/orders" component={Orders} />
         <ProtectedRoute path="/notifications" component={Notifications} />
         <ProtectedRoute path="/create-pharmacy" component={CreatePharmacy} />
         <ProtectedRoute path="/store-dashboard" component={StoreDashboard} />
+        <ProtectedRoute path="/profile" component={ProfilePage} />
         <Route component={NotFound} />
       </Switch>
     </>

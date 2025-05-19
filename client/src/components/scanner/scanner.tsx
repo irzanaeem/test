@@ -103,14 +103,14 @@ const Scanner = () => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
       <div className="p-6">
-        <h2 className="text-lg font-heading font-semibold text-neutral-900 mb-4">Upload Prescription</h2>
-        <p className="text-neutral-600 mb-6">
+        <h2 className="text-lg font-heading font-semibold text-gray-900 mb-4">Upload Prescription</h2>
+        <p className="text-gray-700 mb-6">
           Upload a clear image of your prescription and our OCR technology will extract the medication information for you.
         </p>
         
         {!hasResult && !isProcessing && (
           <div 
-            className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center cursor-pointer hover:bg-neutral-50 transition-colors"
+            className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-100 transition-colors"
             onClick={handleUploadAreaClick}
           >
             <div className="space-y-4">
@@ -118,7 +118,7 @@ const Scanner = () => {
                 <i className="ri-upload-cloud-2-line text-5xl text-neutral-400"></i>
               </div>
               <div>
-                <p className="text-neutral-600">Drag and drop your prescription image here, or</p>
+                <p className="text-gray-900">Drag and drop your prescription image here, or</p>
                 <Button 
                   onClick={handleBrowseClick} 
                   className="mt-2"
@@ -159,9 +159,9 @@ const Scanner = () => {
                   />
                 </div>
                 <div className="md:w-1/2 p-4">
-                  <h3 className="font-heading font-semibold text-neutral-900 mb-2">Extracted Information</h3>
-                  <div className="bg-neutral-50 p-3 rounded-md mb-4 max-h-[300px] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm text-neutral-700">
+                  <h3 className="font-heading font-semibold text-gray-900 mb-2">Extracted Information</h3>
+                  <div className="bg-gray-50 p-3 rounded-md mb-4 max-h-[300px] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700">
                       {extractedText || "No text could be extracted. Please try a clearer image."}
                     </pre>
                   </div>
@@ -185,29 +185,29 @@ const Scanner = () => {
         )}
       </div>
       
-      <div className="p-6 bg-neutral-50 border-t border-neutral-200">
-        <h2 className="text-lg font-heading font-semibold text-neutral-900 mb-4">How It Works</h2>
+      <div className="p-6 bg-white border-t border-neutral-200">
+        <h2 className="text-lg font-heading font-semibold text-gray-900 mb-4">How It Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ri-upload-cloud-line text-xl text-primary-500"></i>
             </div>
-            <h3 className="font-heading font-medium text-neutral-900 mb-2">1. Upload</h3>
-            <p className="text-sm text-neutral-600">Upload a clear image of your prescription.</p>
+            <h3 className="font-heading font-medium text-gray-900 mb-2">1. Upload</h3>
+            <p className="text-sm text-gray-700">Upload a clear image of your prescription.</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ri-file-text-line text-xl text-primary-500"></i>
             </div>
-            <h3 className="font-heading font-medium text-neutral-900 mb-2">2. Process</h3>
-            <p className="text-sm text-neutral-600">Our OCR technology extracts the text from your prescription.</p>
+            <h3 className="font-heading font-medium text-gray-900 mb-2">2. Process</h3>
+            <p className="text-sm text-gray-700">Our OCR technology extracts the text from your prescription.</p>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="ri-search-line text-xl text-primary-500"></i>
             </div>
-            <h3 className="font-heading font-medium text-neutral-900 mb-2">3. Search</h3>
-            <p className="text-sm text-neutral-600">Search for medications from the extracted information.</p>
+            <h3 className="font-heading font-medium text-gray-900 mb-2">3. Search</h3>
+            <p className="text-sm text-gray-700">Search for medications from the extracted information.</p>
           </div>
         </div>
       </div>

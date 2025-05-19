@@ -80,7 +80,7 @@ const OrdersPage = () => {
         <meta name="description" content="View your medication orders, track status, and see details about your past and upcoming pickups from local pharmacies." />
       </Helmet>
       
-      <div className="bg-primary-500 py-6">
+      <div className="bg-transparent py-6">
         <div className="container-custom">
           <h1 className="text-2xl font-heading font-bold text-white">Your Orders</h1>
         </div>
@@ -90,28 +90,13 @@ const OrdersPage = () => {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-heading font-semibold text-neutral-900">Recent Orders</h2>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-neutral-700">Filter:</span>
-              <Select defaultValue="all" onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All orders" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All orders</SelectItem>
-                  <SelectItem value="pending">Processing</SelectItem>
-                  <SelectItem value="ready">Ready for pickup</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
         
         {isLoading ? (
           <div className="space-y-6">
             {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div key={index} className="bg-card rounded-lg shadow-md overflow-hidden">
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <div>
@@ -142,13 +127,11 @@ const OrdersPage = () => {
             <p className="text-red-500">Error loading orders. Please try again later.</p>
           </div>
         ) : sortedOrders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden p-6 text-center">
-            <i className="ri-shopping-bag-line text-5xl text-neutral-300 mb-4"></i>
-            <h2 className="text-xl font-heading font-semibold text-neutral-900 mb-2">No Orders Found</h2>
-            <p className="text-neutral-600 mb-6">You don't have any orders yet.</p>
-            <Button onClick={() => setLocation("/stores")}>
-              Browse Pharmacies
-            </Button>
+          <div className="modern-card text-center">
+            <i className="ri-shopping-bag-line modern-icon mb-4"></i>
+            <h2 className="text-xl font-heading font-semibold text-blue-900 mb-2">No Orders Found</h2>
+            <p className="text-blue-800 mb-6">You don't have any orders yet.</p>
+            <Button className="modern-btn" onClick={() => setLocation("/stores")}>Browse Pharmacies</Button>
           </div>
         ) : (
           <div className="space-y-6">

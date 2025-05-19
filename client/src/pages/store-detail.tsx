@@ -74,7 +74,7 @@ const StoreDetailPage = () => {
         ...item.medication,
         inStock: item.inStock,
         quantity: item.quantity,
-        price: item.price || item.medication.price
+        price: String(item.price || item.medication.price)
       }));
       
       // Apply search filter
@@ -112,7 +112,7 @@ const StoreDetailPage = () => {
       usageInstructions: medication.usageInstructions || null,
       storeId: storeId,
       storeName: store?.name || "Store",
-      inventoryPrice: medication.price
+      inventoryPrice: String(medication.price)
     }, quantity);
   };
   
@@ -137,14 +137,14 @@ const StoreDetailPage = () => {
   return (
     <>
       <Helmet>
-        <title>{store ? `${store.name} - MediFind` : "Pharmacy Details - MediFind"}</title>
+        <title>{store ? `${store.name} - E Pharma` : "Pharmacy Details - E Pharma"}</title>
         <meta 
           name="description" 
-          content={store ? `Browse medications available at ${store.name}. Check prices, availability, and place orders for pickup.` : "View pharmacy details and available medications."} 
+          content={store ? `Browse medications available at ${store.name}. Check prices, availability, and place orders for pickup at E Pharma.` : "View pharmacy details and available medications on E Pharma."} 
         />
       </Helmet>
       
-      <div className="bg-primary-500 py-6">
+      <div className="bg-transparent py-6">
         <div className="container-custom">
           <div className="flex items-center">
             <button 
@@ -164,7 +164,7 @@ const StoreDetailPage = () => {
       <div className="container-custom py-6">
         {isLoading ? (
           <>
-            <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+            <div className="bg-card rounded-lg shadow-md overflow-hidden mb-6">
               <div className="md:flex">
                 <div className="md:w-1/2">
                   <Skeleton className="w-full h-64 md:h-full" />
@@ -190,7 +190,7 @@ const StoreDetailPage = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, index) => (
-                  <div key={index} className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden p-4">
+                  <div key={index} className="bg-card rounded-lg shadow-sm border border-neutral-200 overflow-hidden p-4">
                     <div className="flex items-start">
                       <Skeleton className="w-16 h-16 rounded-md mr-4" />
                       <div className="flex-1">

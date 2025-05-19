@@ -12,6 +12,9 @@ app.use(fileUpload({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB size limit
 }));
 
+// Serve uploaded images
+app.use('/uploads', express.static('public/uploads'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

@@ -73,6 +73,10 @@ export function setupAuth(app: Express) {
 
   app.post("/api/auth/register", async (req, res, next) => {
     try {
+      // Convert isStore boolean to number if needed
+      if (typeof req.body.isStore === "boolean") {
+        req.body.isStore = req.body.isStore ? 1 : 0;
+      }
       // Validate user data
       const userData = insertUserSchema.parse(req.body);
       

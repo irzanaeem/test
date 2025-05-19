@@ -1,77 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 0 0% 100%;
-  --foreground: 20 14.3% 4.1%;
-  --muted: 60 4.8% 95.9%;
-  --muted-foreground: 25 5.3% 44.7%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 20 14.3% 4.1%;
-  --card: 0 0% 100%;
-  --card-foreground: 20 14.3% 4.1%;
-  --border: 20 5.9% 90%;
-  --input: 20 5.9% 90%;
-  --primary: 207 90% 54%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 60 4.8% 95.9%;
-  --secondary-foreground: 24 9.8% 10%;
-  --accent: 60 4.8% 95.9%;
-  --accent-foreground: 24 9.8% 10%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 60 9.1% 97.8%;
-  --ring: 20 14.3% 4.1%;
-  --radius: 0.5rem;
-  --chart-1: 207 90% 54%;
-  --chart-2: 142 71% 45%;
-  --chart-3: 47 100% 50%;
-  --chart-4: 0 84.2% 60.2%;
-  --chart-5: 262 83% 58%;
-  --sidebar-background: 0 0% 100%;
-  --sidebar-foreground: 20 14.3% 4.1%;
-  --sidebar-primary: 207 90% 54%;
-  --sidebar-primary-foreground: 211 100% 99%;
-  --sidebar-accent: 60 4.8% 95.9%;
-  --sidebar-accent-foreground: 24 9.8% 10%;
-  --sidebar-border: 20 5.9% 90%;
-  --sidebar-ring: 20 14.3% 4.1%;
-}
-
-.dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 207 90% 54%;
-  --primary-foreground: 211 100% 99%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 222 83% 56%; /* #2563eb */
+    --primary-dark: 222 83% 46%;
+    --teal: 168 72% 47%; /* #2dd4bf */
+    --green: 142 71% 45%; /* #22c55e */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --border: 222 83% 56%;
+    --radius: 0.75rem;
+    --chart-1: 242 84% 65%;
+    --chart-2: 278 100% 60%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 47 100% 50%;
+    --chart-5: 0 84.2% 60.2%;
+    --sidebar-background: 260 6% 18%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 242 84% 65%;
+    --sidebar-primary-foreground: 211 100% 99%;
+    --sidebar-accent: 278 100% 60%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 242 84% 65%;
+  }
+  html {
+    font-family: 'Poppins', 'Roboto', sans-serif;
+  }
+  body {
+    @apply min-h-screen text-foreground antialiased;
+    background: linear-gradient(135deg, #4f8bfd 0%, #6ee7b7 100%);
+    /* Soft blue to teal, no harsh lines */
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+}
 
-  body {
-    @apply bg-neutral-50 text-neutral-800 font-sans antialiased;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
-  }
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold;
+}
+
+input, textarea, select {
+  background-color: hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1.5px solid #4F6BED !important;
+}
+
+label, .form-label {
+  color: hsl(var(--foreground)) !important;
+}
+
+::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  opacity: 1;
 }
 
 @layer components {
@@ -80,31 +71,31 @@
   }
   
   .page-header {
-    @apply py-6 bg-primary-500 text-white;
+    @apply py-6 bg-white text-black;
   }
   
   .section-title {
-    @apply text-2xl font-bold text-neutral-900 mb-6;
+    @apply text-2xl font-bold text-black mb-6;
   }
   
   .card-hover {
-    @apply hover:shadow-lg transition-shadow duration-300;
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
   
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-md font-medium transition-colors;
+    @apply bg-black text-white hover:bg-neutral-800 transition-colors;
   }
   
   .btn-secondary {
-    @apply bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-700 py-2 px-4 rounded-md font-medium transition-colors;
+    @apply bg-white border border-black hover:bg-gray-50 text-black py-2 px-4 rounded-md font-medium transition-colors;
   }
   
   .form-input {
-    @apply mt-1 block w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500;
+    @apply mt-1 block w-full px-3 py-2 border border-black rounded-md shadow-sm focus:outline-none focus:ring-black focus:border-black bg-input text-foreground placeholder:text-muted-foreground;
   }
   
   .form-label {
-    @apply block text-sm font-medium text-neutral-700;
+    @apply block text-sm font-medium text-foreground;
   }
   
   .badge {
@@ -112,7 +103,7 @@
   }
   
   .badge-primary {
-    @apply bg-primary-100 text-primary-800;
+    @apply bg-neutral-200 text-black;
   }
   
   .badge-success {
@@ -126,4 +117,138 @@
   .badge-error {
     @apply bg-red-100 text-red-800;
   }
+  
+  .feature-card, .testimonial-card, .stats-card, .glass-card, .card, .menu, .dropdown, .dialog, .popover {
+    @apply bg-white text-black border border-black shadow-md rounded-xl;
+  }
+  
+  .cta-section {
+    @apply bg-black text-white rounded-2xl p-8;
+  }
+  
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-lg rounded-2xl shadow-xl border border-white/30 p-8 transition-all duration-300;
+  }
+  
+  .glass-search {
+    @apply bg-white/70 backdrop-blur-md rounded-xl shadow-lg border border-white/20 px-4 py-3 flex items-center gap-2;
+  }
+  
+  .modern-btn {
+    @apply bg-gradient-to-r from-blue-500 to-teal-400 text-white font-semibold rounded-xl shadow-lg px-6 py-3 transition-all duration-200 hover:scale-105 hover:shadow-2xl;
+  }
+  
+  .modern-btn-outline {
+    @apply border-2 border-blue-500 text-blue-600 font-semibold rounded-xl px-6 py-3 bg-white hover:bg-blue-50 transition-all duration-200;
+  }
+  
+  .modern-card {
+    @apply bg-white rounded-2xl shadow-lg border border-blue-100 p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  }
+  
+  .modern-icon {
+    @apply text-blue-500 text-3xl mb-4;
+  }
+  
+  .modern-link {
+    @apply text-blue-600 font-semibold underline underline-offset-2 hover:text-teal-500 transition-colors;
+  }
+}
+
+::selection {
+  color: #fff !important;
+  background: #222 !important;
+}
+
+button, .btn, [role="button"], .button, a, .link, input[type="button"], input[type="submit"] {
+  color: inherit !important;
+  font-weight: 400 !important;
+}
+
+.nav-link {
+  @apply text-black hover:text-neutral-700 transition-colors;
+}
+
+.nav-link.active {
+  @apply text-black font-medium underline;
+}
+
+.hero-gradient {
+  @apply bg-white;
+}
+
+/* Custom styles */
+.nav-link {
+  @apply text-gray-600 hover:text-primary transition-colors;
+}
+
+.nav-link.active {
+  @apply text-primary font-medium;
+}
+
+/* Hero section */
+.hero-gradient {
+  @apply bg-gradient-to-r from-blue-600 to-blue-800;
+}
+
+/* Feature card */
+.feature-card {
+  @apply bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-300;
+}
+
+/* Testimonial card */
+.testimonial-card {
+  @apply bg-white rounded-xl shadow-md p-6 border border-gray-100;
+}
+
+/* Stats section */
+.stats-card {
+  @apply bg-white rounded-xl shadow-md p-6 text-center;
+}
+
+/* CTA section */
+.cta-section {
+  @apply bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl p-8;
+}
+
+input[type="checkbox"]:checked, input[type="radio"]:checked {
+  accent-color: #4F6BED;
+}
+
+select:focus, input:focus, textarea:focus {
+  outline: 2px solid #4F6BED !important;
+  border-color: #4F6BED !important;
+}
+
+select {
+  color: #4F6BED !important;
+  border: 1.5px solid #4F6BED !important;
+  background-color: #fff !important;
+}
+
+select option:checked, select option[selected] {
+  background: #4F6BED !important;
+  color: #fff !important;
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' fill='none' stroke='%234F6BED' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25em 1.25em;
+}
+
+/* Blue for links */
+a, .link {
+  color: #4F6BED;
+  text-decoration: underline;
+}
+a:hover, .link:hover {
+  color: #3B53A0;
+}
+
+/* Blue for checkbox/radio focus */
+input[type="checkbox"]:focus, input[type="radio"]:focus {
+  outline: 2px solid #4F6BED !important;
+  border-color: #4F6BED !important;
 }

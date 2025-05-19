@@ -126,7 +126,7 @@ const FeaturedStores = ({ userCity = "" }: FeaturedStoresProps) => {
                     </h3>
                     <div className="flex items-center bg-primary-50 rounded-full px-2 py-1">
                       <i className="ri-star-fill text-yellow-400 mr-1"></i>
-                      <span className="text-sm font-medium text-neutral-700">{store.rating.toFixed(1)}</span>
+                      <span className="text-sm font-medium text-neutral-700">{typeof store.rating === 'number' ? store.rating.toFixed(1) : '0.0'}</span>
                     </div>
                   </div>
                   <p className="text-neutral-600 text-sm mb-3">{store.address}</p>

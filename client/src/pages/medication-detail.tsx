@@ -50,7 +50,7 @@ const MedicationDetailPage = () => {
   
   // Fetch medication details
   const { data: medication, isLoading: isLoadingMedication } = useQuery<Medication>({
-    queryKey: [`/api/medications/${medicationId}`],
+    queryKey: [`/api/medications/${medicationId.toString()}`],
     enabled: !isNaN(medicationId),
   });
   
@@ -127,14 +127,14 @@ const MedicationDetailPage = () => {
   return (
     <>
       <Helmet>
-        <title>{medication ? `${medication.name} - MediFind` : "Medication Details - MediFind"}</title>
+        <title>{medication ? `${medication.name} - E Pharma` : "Medication Details - E Pharma"}</title>
         <meta 
           name="description" 
-          content={medication ? `View details, pricing, and availability for ${medication.name} ${medication.dosage}. Learn about side effects, usage instructions, and order online.` : "View medication details, pricing, and availability information."} 
+          content={medication ? `View details, pricing, and availability for ${medication.name} ${medication.dosage}. Learn about side effects, usage instructions, and order online at E Pharma.` : "View medication details, pricing, and availability information on E Pharma."} 
         />
       </Helmet>
       
-      <div className="bg-primary-500 py-6">
+      <div className="bg-transparent py-6">
         <div className="container-custom">
           <div className="flex items-center">
             <button 
@@ -153,7 +153,7 @@ const MedicationDetailPage = () => {
       
       <div className="container-custom py-6">
         {isLoading ? (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+          <div className="bg-card rounded-lg shadow-md overflow-hidden mb-6">
             <div className="p-6">
               <div className="flex flex-col md:flex-row md:items-center md:space-x-6 mb-6">
                 <div className="mb-4 md:mb-0">

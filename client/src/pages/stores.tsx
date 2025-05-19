@@ -113,9 +113,9 @@ const Stores = () => {
         />
       </Helmet>
       
-      <div className="bg-primary-500 py-6">
+      <div className="bg-transparent py-6">
         <div className="container-custom">
-          <h1 className="text-2xl font-heading font-bold text-white">
+          <h1 className="text-2xl font-heading font-bold text-gray-900">
             {userCity ? `Pharmacies in ${userCity}` : "Nearby Pharmacies"}
           </h1>
         </div>
@@ -140,39 +140,13 @@ const Stores = () => {
                 </div>
               </form>
             </div>
-            
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-neutral-700">Sort by:</span>
-              <Select defaultValue="distance" onValueChange={setSortBy}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-neutral-700">Filter:</span>
-              <Select defaultValue="all" onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Filter by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All stores</SelectItem>
-                  <SelectItem value="open">Open now</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
         
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div key={index} className="bg-card rounded-lg shadow-md overflow-hidden">
                 <Skeleton className="w-full h-40" />
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
@@ -195,7 +169,7 @@ const Stores = () => {
           </div>
         ) : filteredStores.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-lg font-medium text-neutral-700">No pharmacies found matching your criteria.</p>
+            <p className="text-lg font-medium text-gray-700">No pharmacies found matching your criteria.</p>
             <p className="text-neutral-500 mt-2">Try adjusting your search or filters.</p>
           </div>
         ) : (

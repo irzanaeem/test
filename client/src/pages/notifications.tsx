@@ -95,7 +95,7 @@ const NotificationsPage = () => {
         <meta name="description" content="View your medication order updates, prescription reminders, and other important notifications from pharmacies." />
       </Helmet>
       
-      <div className="bg-primary-500 py-6">
+      <div className="bg-transparent py-6">
         <div className="container-custom">
           <div className="flex items-center">
             <button 
@@ -111,9 +111,9 @@ const NotificationsPage = () => {
       </div>
       
       <div className="container-custom max-w-3xl py-6">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div className="bg-card rounded-lg shadow-md overflow-hidden mb-6">
           <div className="p-4 border-b border-neutral-200 flex items-center justify-between">
-            <h2 className="text-lg font-heading font-semibold text-neutral-900">Recent Notifications</h2>
+            <h2 className="text-lg font-heading font-semibold text-foreground">Recent Notifications</h2>
             <Button 
               variant="ghost" 
               size="sm" 

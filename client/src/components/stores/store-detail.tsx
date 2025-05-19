@@ -46,7 +46,7 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
           <div className="md:w-1/2">
             {store.imageUrl ? (
               <img
-                src={store.imageUrl}
+                src={store.imageUrl.startsWith('/uploads/') ? `http://localhost:5000${store.imageUrl}` : store.imageUrl}
                 alt={`${store.name} interior`}
                 className="w-full h-64 md:h-full object-cover"
               />
@@ -62,7 +62,7 @@ const StoreDetail = ({ store, inventory, isLoading, onAddToCart }: StoreDetailPr
               <div className="flex items-center bg-primary-50 rounded-full px-3 py-1">
                 <i className="ri-star-fill text-yellow-400 mr-1"></i>
                 <span className="text-sm font-medium text-neutral-700">
-                  {store.rating.toFixed(1)} ({store.reviewCount} reviews)
+                  {typeof store.rating === 'number' ? store.rating.toFixed(1) : '0.0'} ({store.reviewCount} reviews)
                 </span>
               </div>
             </div>

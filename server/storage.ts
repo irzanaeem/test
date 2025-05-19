@@ -1,14 +1,16 @@
 import { db } from "./db";
 import { eq, and, like, desc } from "drizzle-orm";
-import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { pool } from "./db";
+import SQLiteStore from "connect-sqlite3";
 import { 
   users, medications, stores, storeInventory, orders, orderItems, notifications,
   User, InsertUser, Store, InsertStore, Medication, InsertMedication,
   StoreInventory, InsertStoreInventory, Order, InsertOrder, OrderItem, InsertOrderItem,
   Notification, InsertNotification
 } from "@shared/schema";
+import { IStorage } from "./types";
+
+const SQLiteStoreSession = SQLiteStore(session);
 
 export interface IStorage {
   // Session store
@@ -57,15 +59,14 @@ export interface IStorage {
   markAllNotificationsAsRead(userId: number): Promise<void>;
 }
 
-const PostgresSessionStore = connectPg(session);
-
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
+  private sessionStore: any;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true
+    this.sessionStore = new SQLiteStoreSession({
+      db: "sessions.db",
+      dir: "./",
+      table: "sessions"
     });
   }
 

@@ -59,7 +59,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
     <div className="bg-white rounded-lg shadow-md overflow-hidden p-4 hover:shadow-lg transition-shadow duration-300">
       <div className="flex items-start">
         <img
-          src={medication.imageUrl}
+          src={medication.imageUrl.startsWith('/uploads/') ? `http://localhost:5000${medication.imageUrl}` : medication.imageUrl}
           alt={medication.name}
           className="w-16 h-16 object-cover rounded-md mr-4"
         />
@@ -85,7 +85,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
             <div className="flex-1 mr-2">
               <div className="flex border border-neutral-300 rounded-md">
                 <button
-                  className="px-3 py-1 border-r border-neutral-300 text-neutral-600 hover:bg-neutral-100"
+                  className="px-3 py-1 border-r border-blue-500 bg-blue-500 text-white hover:bg-blue-600 rounded-l-md"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   aria-label="Decrease quantity"
                   title="Decrease quantity"
@@ -104,7 +104,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
                   }}
                 />
                 <button
-                  className="px-3 py-1 border-l border-neutral-300 text-neutral-600 hover:bg-neutral-100"
+                  className="px-3 py-1 border-l border-blue-500 bg-blue-500 text-white hover:bg-blue-600 rounded-r-md"
                   onClick={() => setQuantity(quantity + 1)}
                   aria-label="Increase quantity"
                   title="Increase quantity"
@@ -122,7 +122,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
           </div>
           <button
             onClick={() => setShowQuantity(false)}
-            className="w-full text-center text-neutral-500 text-xs hover:text-neutral-700"
+            className="w-full text-center text-blue-600 font-semibold text-xs hover:text-blue-800 transition-colors"
           >
             Cancel
           </button>
@@ -131,7 +131,7 @@ const MedicationCard = ({ medication, onViewDetails, onAddToCart }: MedicationCa
         <div className="mt-3 flex gap-2">
           <button
             onClick={() => onViewDetails(medication.id)}
-            className="flex-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 py-2 px-4 rounded-md font-medium text-sm transition-colors"
+            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md font-medium text-sm transition-colors"
           >
             View Details
           </button>

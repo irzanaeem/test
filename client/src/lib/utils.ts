@@ -13,7 +13,9 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatDate(date: Date | string): string {
+  if (!date) return "Invalid date";
   const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return "Invalid date";
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'long',

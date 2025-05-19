@@ -22,8 +22,13 @@ const Login = () => {
         <meta name="description" content="Sign in to your MediFind account to order medications from local pharmacies and manage your prescriptions." />
       </Helmet>
       
-      <div className="pt-10 pb-20 min-h-screen flex items-center bg-neutral-50">
-        <LoginForm />
+      <div
+        className="min-h-screen w-full flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #a5b4fc 0%, #67e8f9 100%)' }}
+      >
+        <div className="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-5xl flex">
+          <LoginForm />
+        </div>
       </div>
     </>
   );

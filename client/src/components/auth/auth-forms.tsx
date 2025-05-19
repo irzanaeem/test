@@ -57,7 +57,7 @@ export const LoginForm = () => {
   };
   
   return (
-    <div className="max-w-md w-full mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-md w-full mx-auto p-6 rounded-lg shadow-md bg-white/70 backdrop-blur-md">
       <div className="text-center mb-8">
         <i className="ri-capsule-fill text-primary-500 text-5xl mb-4"></i>
         <h2 className="text-2xl font-heading font-bold text-neutral-800">Sign in to MediFind</h2>
@@ -170,7 +170,7 @@ export const SignupForm = () => {
   };
   
   return (
-    <div className="max-w-md w-full mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-md w-full mx-auto p-6 rounded-lg shadow-md bg-white/70 backdrop-blur-md">
       <div className="text-center mb-8">
         <i className="ri-capsule-fill text-primary-500 text-5xl mb-4"></i>
         <h2 className="text-2xl font-heading font-bold text-neutral-800">Create an account</h2>

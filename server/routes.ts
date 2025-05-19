@@ -23,6 +23,13 @@ declare global {
   }
 }
 
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   setupAuth(app);
@@ -82,31 +89,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new store (pharmacy)
   app.post("/api/stores", requireAuth, async (req: Request, res: Response) => {
     try {
-      if (!(req.user as any).isStore) {
+      console.log("[POST /api/stores] Incoming request:", req.body);
+      if (!((req.user as any).isStore === 1)) {
         return res.status(403).json({ message: "Only store owners can create pharmacies" });
       }
-      
       const userId = (req.user as any).id;
-      
-      // Handle FormData or JSON
       let storeData;
       let imageUrl = null;
-      
       if (req.is('multipart/form-data')) {
-        // Process form data
         const { name, address, city, zipCode, phone, email, openingHours, description } = req.body;
-        
+        const requiredFields = [name, address, city, zipCode, phone, email, openingHours, description];
+        if (requiredFields.some(f => !f)) {
+          return res.status(400).json({ message: "Missing required fields", fields: { name, address, city, zipCode, phone, email, openingHours, description } });
+        }
         // Extract image if present
         if (req.files && req.files.image) {
-          const imageFile = Array.isArray(req.files.image) 
-            ? req.files.image[0] 
+          const imageFile = Array.isArray(req.files.image)
+            ? req.files.image[0]
             : req.files.image;
-          
-          // Here you would normally upload the file to cloud storage
-          // For now, we'll use a placeholder or the URL if provided
-          imageUrl = `https://i.ibb.co/DDkqJ7w/pharmacy4.jpg`;
+          const uploadDir = path.join(__dirname, '../public/uploads');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          const fileName = Date.now() + '-' + imageFile.name.replace(/\s+/g, '_');
+          const filePath = path.join(uploadDir, fileName);
+          await imageFile.mv(filePath);
+          imageUrl = `/uploads/${fileName}`;
+          console.log("[POST /api/stores] Saved imageUrl:", imageUrl);
         }
-        
         storeData = {
           name,
           address,
@@ -116,22 +126,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email,
           openingHours,
           description,
-          imageUrl: imageUrl || `https://i.ibb.co/HTT4Ljh/pharmacy1.jpg`,
+          imageUrl: imageUrl || `/uploads/default-pharmacy.jpg`,
           rating: 0,
           reviewCount: 0,
           userId
         };
+        console.log("[POST /api/stores] Final storeData:", storeData);
       } else {
-        // Process JSON data
         storeData = {
           ...req.body,
-          imageUrl: req.body.imageUrl || `https://i.ibb.co/HTT4Ljh/pharmacy1.jpg`,
+          imageUrl: req.body.imageUrl || `/uploads/default-pharmacy.jpg`,
           rating: 0,
           reviewCount: 0,
           userId
         };
+        console.log("[POST /api/stores] Final storeData (non-multipart):", storeData);
       }
-      
+      const requiredFields = [storeData.name, storeData.address, storeData.city, storeData.zipCode, storeData.phone, storeData.email, storeData.openingHours, storeData.description];
+      if (requiredFields.some(f => !f)) {
+        return res.status(400).json({ message: "Missing required fields", fields: storeData });
+      }
       const newStore = await storage.createStore(storeData);
       return res.status(201).json(newStore);
     } catch (error: any) {
@@ -194,6 +208,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching medication:", error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create a new medication (with image upload support)
+  app.post("/api/medications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      let medicationData;
+      let imageUrl = null;
+      if (req.is('multipart/form-data')) {
+        const { name, description, dosage, manufacturer, category, price, sideEffects, usageInstructions } = req.body;
+        if (req.files && req.files.image) {
+          const imageFile = Array.isArray(req.files.image)
+            ? req.files.image[0]
+            : req.files.image;
+          const uploadDir = path.join(__dirname, '../public/uploads');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          const fileName = Date.now() + '-' + imageFile.name.replace(/\s+/g, '_');
+          const filePath = path.join(uploadDir, fileName);
+          await imageFile.mv(filePath);
+          imageUrl = `/uploads/${fileName}`;
+        }
+        medicationData = {
+          name,
+          description,
+          dosage,
+          manufacturer,
+          category,
+          price,
+          imageUrl: imageUrl || `https://i.ibb.co/2d1Qw1C/medicine-placeholder.jpg`,
+          sideEffects,
+          usageInstructions,
+        };
+      } else {
+        medicationData = {
+          ...req.body,
+          imageUrl: req.body.imageUrl || `https://i.ibb.co/2d1Qw1C/medicine-placeholder.jpg`,
+        };
+      }
+      if (!medicationData.name || !medicationData.price) {
+        return res.status(400).json({ message: "Missing required fields: name and price are required." });
+      }
+      const newMedication = await storage.createMedication(medicationData);
+      return res.status(201).json(newMedication);
+    } catch (error: any) {
+      console.error("Error creating medication:", error);
+      return res.status(500).json({ message: "Internal server error", error: error.message });
     }
   });
 
@@ -367,12 +429,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { medicationId, price, quantity } = req.body;
       
       // Validate inventory data
-      const inStock = quantity > 0;
+      const inStock = Number(quantity) > 0 ? 1 : 0;
       const validatedInventory = insertStoreInventorySchema.parse({
         storeId,
-        medicationId,
-        price,
-        quantity,
+        medicationId: Number(medicationId),
+        price: String(price),
+        quantity: Number(quantity),
         inStock
       });
       
@@ -387,8 +449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         medication
       });
     } catch (error) {
-      console.error("Error adding inventory item:", error);
-      return res.status(500).json({ message: "Internal server error" });
+      console.error("Error adding inventory item:", error, (error as any)?.stack);
+      return res.status(500).json({ message: "Internal server error", error: (error as any)?.message, stack: (error as any)?.stack });
     }
   });
   
@@ -415,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { price, quantity } = req.body;
       
       // Update inventory with new data
-      const inStock = quantity > 0;
+      const inStock = quantity > 0 ? 1 : 0;
       const updatedInventory = await storage.updateStoreInventory(inventoryId, {
         price,
         quantity,

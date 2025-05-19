@@ -106,6 +106,8 @@ interface InventoryFormData {
   medicationId: number;
   price: number;
   quantity: number;
+  productName?: string;
+  imageUrl?: string;
 }
 
 const StoreDashboard = () => {
@@ -122,6 +124,8 @@ const StoreDashboard = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentInventoryId, setCurrentInventoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch user's stores
   const { data: stores = [], isLoading: isLoadingStores } = useQuery<Store[]>({
@@ -177,6 +181,7 @@ const StoreDashboard = () => {
       
       // Invalidate and refetch inventory data
       queryClient.invalidateQueries({ queryKey: ["/api/stores", selectedStore?.id, "inventory"] });
+      queryClient.refetchQueries({ queryKey: ["/api/stores", selectedStore?.id, "inventory"] });
       
       // Reset form and close dialog
       setInventoryFormData({ medicationId: 0, price: 0, quantity: 0 });
@@ -218,10 +223,52 @@ const StoreDashboard = () => {
     },
   });
 
-  // Handle inventory form submission
-  const handleInventorySubmit = (e: React.FormEvent) => {
+  // Update handleInventorySubmit to support new medication creation with image upload
+  const handleInventorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    inventoryMutation.mutate(inventoryFormData);
+    let medicationId = inventoryFormData.medicationId;
+    let medicationImageUrl = inventoryFormData.imageUrl;
+    // If productName is provided and does not match an existing medication, create it
+    if (inventoryFormData.productName) {
+      const existing = medications.find(m => m.name.toLowerCase() === inventoryFormData.productName!.toLowerCase());
+      if (!existing) {
+        // Create new medication
+        let formData = new FormData();
+        formData.append("name", inventoryFormData.productName);
+        formData.append("price", String(inventoryFormData.price));
+        if (selectedImageFile) {
+          formData.append("image", selectedImageFile);
+        }
+        // Add other fields as needed
+        const res = await fetch("/api/medications", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          // Handle error
+          toast({ title: "Error", description: "Failed to create medication.", variant: "destructive" });
+          return;
+        }
+        const newMed = await res.json();
+        medicationId = newMed.id;
+        medicationImageUrl = newMed.imageUrl;
+      } else {
+        medicationId = existing.id;
+        medicationImageUrl = existing.imageUrl;
+      }
+    }
+    // Now add to inventory
+    medicationId = Number(medicationId);
+    if (!medicationId || isNaN(medicationId)) {
+      toast({ title: "Error", description: "Invalid medication ID.", variant: "destructive" });
+      return;
+    }
+    inventoryMutation.mutate({
+      medicationId,
+      price: inventoryFormData.price,
+      quantity: inventoryFormData.quantity,
+      imageUrl: medicationImageUrl,
+    });
   };
 
   // Handle order status change
@@ -254,16 +301,17 @@ const StoreDashboard = () => {
   const filteredInventory = inventory.filter(item => {
     // Apply text search filter
     const matchesSearch = 
-      item.medication.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.medication.description ? item.medication.description.toLowerCase().includes(searchTerm.toLowerCase()) : false);
-    
+      item.medication &&
+      (
+        (item.medication.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (item.medication.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
     // Apply status filter
     const matchesFilter = 
       inventoryFilter === 'all' ||
       (inventoryFilter === 'in-stock' && item.inStock && item.quantity > 10) ||
       (inventoryFilter === 'low-stock' && item.inStock && item.quantity > 0 && item.quantity <= 10) ||
       (inventoryFilter === 'out-of-stock' && (!item.inStock || item.quantity === 0));
-    
     return matchesSearch && matchesFilter;
   });
 
@@ -303,7 +351,7 @@ const StoreDashboard = () => {
   if (stores.length === 0) {
     return (
       <div className="container mx-auto py-10">
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <div className="max-w-2xl mx-auto bg-card p-8 rounded-lg shadow-md">
           <h1 className="text-2xl font-semibold mb-4">No Pharmacy Found</h1>
           <p className="mb-6">You don't have any pharmacy registered yet. Create your first pharmacy to manage your business on E Pharma.</p>
           <Button 
@@ -359,7 +407,7 @@ const StoreDashboard = () => {
         </div>
 
         {selectedStore && (
-          <Tabs defaultValue="overview">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-6">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="inventory">Inventory</TabsTrigger>
@@ -368,257 +416,47 @@ const StoreDashboard = () => {
             </TabsList>
 
             <TabsContent value="overview">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
+              <div className="flex justify-center">
+                <Card className="bg-white text-black">
                   <CardHeader>
-                    <CardTitle>Inventory Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-3xl font-bold">{inventory.length}</p>
-                        <p className="text-sm text-muted-foreground">Products</p>
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold">
-                          {inventory.filter(item => item.inStock && item.quantity > 0).length}
-                        </p>
-                        <p className="text-sm text-muted-foreground">In Stock</p>
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold">
-                          {inventory.filter(item => !item.inStock || item.quantity === 0).length}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Out of Stock</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={() => {
-                        const tabButton = document.querySelector('[data-state="inactive"][value="inventory"]') as HTMLButtonElement;
-                        if (tabButton) tabButton.click();
-                      }}
-                    >
-                      Manage Inventory
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Orders Summary</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="flex flex-col items-center p-2 bg-yellow-50 rounded-md">
-                        <p className="text-xl font-bold text-yellow-600">{pendingOrders.length}</p>
-                        <p className="text-xs text-yellow-600">Pending</p>
-                      </div>
-                      <div className="flex flex-col items-center p-2 bg-blue-50 rounded-md">
-                        <p className="text-xl font-bold text-blue-600">{processingOrders.length}</p>
-                        <p className="text-xs text-blue-600">Processing</p>
-                      </div>
-                      <div className="flex flex-col items-center p-2 bg-green-50 rounded-md">
-                        <p className="text-xl font-bold text-green-600">{readyForPickupOrders.length}</p>
-                        <p className="text-xs text-green-600">Ready</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      className="w-full" 
-                      onClick={() => {
-                        const tabButton = document.querySelector('[data-state="inactive"][value="orders"]') as HTMLButtonElement;
-                        if (tabButton) tabButton.click();
-                      }}
-                    >
-                      Manage Orders
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Store Information</CardTitle>
+                    <CardTitle className="text-black">Store Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-muted-foreground">Name:</span>
-                      <span>{selectedStore.name}</span>
+                      <span className="text-sm font-medium text-black">Name:</span>
+                      <span className="text-black">{selectedStore.name}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-muted-foreground">Address:</span>
-                      <span>{selectedStore.address}, {selectedStore.city}</span>
+                      <span className="text-sm font-medium text-black">Address:</span>
+                      <span className="text-black">{selectedStore.address}, {selectedStore.city}</span>
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-muted-foreground">Contact:</span>
-                      <span>{selectedStore.phone}</span>
+                      <span className="text-sm font-medium text-black">Contact:</span>
+                      <span className="text-black">{selectedStore.phone}</span>
                     </div>
                   </CardContent>
                   <CardFooter>
                     <Button 
                       variant="outline" 
                       className="w-full" 
-                      onClick={() => {
-                        const tabButton = document.querySelector('[data-state="inactive"][value="settings"]') as HTMLButtonElement;
-                        if (tabButton) tabButton.click();
-                      }}
+                      onClick={() => setActiveTab("settings")}
                     >
                       Edit Store Information
                     </Button>
                   </CardFooter>
                 </Card>
               </div>
-
-              {pendingOrders.length > 0 && (
-                <div className="mt-8">
-                  <h2 className="text-xl font-semibold mb-4">New Orders Requiring Attention</h2>
-                  <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Order ID
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Customer
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Date
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Total
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Status
-                            </th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              Action
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                          {pendingOrders.slice(0, 5).map((order) => (
-                            <tr key={order.id}>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                #{order.id}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {order.user.firstName} {order.user.lastName}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {formatDate(order.createdAt)}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {formatCurrency(order.totalAmount)}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
-                                  Pending
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <Select
-                                  value={order.status}
-                                  onValueChange={(value) => handleOrderStatusChange(order.id, value)}
-                                  disabled={updateOrderStatusMutation.isPending}
-                                >
-                                  <SelectTrigger className="h-8 w-[120px]">
-                                    <SelectValue placeholder="Update" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="processing">Processing</SelectItem>
-                                    <SelectItem value="ready">Ready for Pickup</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {pendingOrders.length > 5 && (
-                      <div className="px-6 py-3">
-                        <Button 
-                          variant="link" 
-                          className="text-primary-500" 
-                          onClick={() => {
-                            const tabButton = document.querySelector('[data-state="inactive"][value="orders"]') as HTMLButtonElement;
-                            if (tabButton) tabButton.click();
-                          }}
-                        >
-                          View all {pendingOrders.length} pending orders
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </TabsContent>
 
             <TabsContent value="inventory">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-white text-black rounded-lg shadow-md overflow-hidden">
                 <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h2 className="text-xl font-semibold">Inventory Management</h2>
                     <p className="text-gray-600 text-sm">Manage your store's products, prices, and stock levels</p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <Input 
-                      type="search" 
-                      placeholder="Search products..." 
-                      className="w-full sm:w-64" 
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <Button onClick={openAddInventoryDialog}>
-                      Add Product
-                    </Button>
-                  </div>
                 </div>
                 
-                <div className="px-6 pb-4 flex gap-2">
-                  <Button 
-                    variant={inventoryFilter === 'all' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setInventoryFilter('all')}
-                  >
-                    All Products
-                  </Button>
-                  <Button 
-                    variant={inventoryFilter === 'in-stock' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setInventoryFilter('in-stock')}
-                    className="text-green-600"
-                  >
-                    In Stock
-                  </Button>
-                  <Button 
-                    variant={inventoryFilter === 'low-stock' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setInventoryFilter('low-stock')}
-                    className="text-orange-500"
-                  >
-                    Low Stock
-                  </Button>
-                  <Button 
-                    variant={inventoryFilter === 'out-of-stock' ? 'default' : 'outline'} 
-                    size="sm"
-                    onClick={() => setInventoryFilter('out-of-stock')}
-                    className="text-red-500"
-                  >
-                    Out of Stock
-                  </Button>
-                </div>
-
                 <div className="overflow-x-auto">
                   {isLoadingInventory ? (
                     <div className="p-8 text-center">
@@ -631,7 +469,7 @@ const StoreDashboard = () => {
                     <div className="p-8 text-center">
                       <p className="text-gray-500 mb-4">No products found in your inventory.</p>
                       <Button onClick={openAddInventoryDialog}>
-                        Add Your First Product
+                        Add product
                       </Button>
                     </div>
                   ) : (
@@ -721,7 +559,7 @@ const StoreDashboard = () => {
             </TabsContent>
 
             <TabsContent value="orders">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="bg-white text-black rounded-lg shadow-md overflow-hidden">
                 <div className="p-6">
                   <h2 className="text-xl font-semibold">Order Management</h2>
                   <p className="text-gray-600 text-sm">View and manage orders from your customers</p>
@@ -794,7 +632,7 @@ const StoreDashboard = () => {
                                     View Details
                                   </Button>
                                 </DialogTrigger>
-                                <DialogContent className="max-w-3xl">
+                                <DialogContent className="max-w-3xl bg-white text-black">
                                   <DialogHeader>
                                     <DialogTitle>Order #{order.id} Details</DialogTitle>
                                     <DialogDescription>
@@ -880,7 +718,7 @@ const StoreDashboard = () => {
                                         onValueChange={(value) => handleOrderStatusChange(order.id, value)}
                                         disabled={updateOrderStatusMutation.isPending}
                                       >
-                                        <SelectTrigger className="w-[200px]">
+                                        <SelectTrigger className="w-[200px] bg-white text-black">
                                           <SelectValue placeholder="Select status" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -891,7 +729,7 @@ const StoreDashboard = () => {
                                           <SelectItem value="cancelled">Cancelled</SelectItem>
                                         </SelectContent>
                                       </Select>
-                                      <Button disabled={updateOrderStatusMutation.isPending}>
+                                      <Button className="bg-white text-black border border-gray-300 hover:bg-gray-100" disabled={updateOrderStatusMutation.isPending}>
                                         {updateOrderStatusMutation.isPending ? "Updating..." : "Update"}
                                       </Button>
                                     </div>
@@ -909,7 +747,7 @@ const StoreDashboard = () => {
             </TabsContent>
 
             <TabsContent value="settings">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden p-6">
+              <div className="bg-white text-black rounded-lg shadow-md overflow-hidden p-6">
                 <h2 className="text-xl font-semibold mb-4">Store Settings</h2>
                 <p className="text-gray-600 text-sm mb-6">Update your pharmacy's information and settings</p>
                 
@@ -991,7 +829,7 @@ const StoreDashboard = () => {
                 </div>
                 
                 <div className="mt-8 flex justify-end space-x-4">
-                  <Button variant="outline" onClick={() => navigate(`/stores/${selectedStore.id}`)}>
+                  <Button variant="outline" className="bg-white text-black border border-gray-300 hover:bg-gray-100" onClick={() => navigate(`/stores/${selectedStore.id}`)}>
                     View Public Profile
                   </Button>
                   <Button className="bg-primary-500" disabled>
@@ -1006,7 +844,7 @@ const StoreDashboard = () => {
 
       {/* Add/Edit Inventory Dialog */}
       <Dialog open={inventoryDialogOpen} onOpenChange={setInventoryDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white text-black">
           <DialogHeader>
             <DialogTitle>{isEditMode ? "Edit Inventory Item" : "Add New Product"}</DialogTitle>
             <DialogDescription>
@@ -1027,32 +865,14 @@ const StoreDashboard = () => {
                     disabled
                   />
                 ) : (
-                  <Select
-                    value={inventoryFormData.medicationId ? inventoryFormData.medicationId.toString() : ""}
-                    onValueChange={(value) => setInventoryFormData({ 
-                      ...inventoryFormData, 
-                      medicationId: parseInt(value),
-                      price: medications.find(m => m.id === parseInt(value))?.price || 0
-                    })}
-                    disabled={isLoadingMedications}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {medications
-                        .filter(medication => 
-                          !inventory.some(item => 
-                            item.medicationId === medication.id
-                          )
-                        )
-                        .map((medication) => (
-                          <SelectItem key={medication.id} value={medication.id.toString()}>
-                            {medication.name} ({medication.dosage})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="productName"
+                    placeholder="Enter product name"
+                    value={inventoryFormData.productName || ''}
+                    onChange={e => setInventoryFormData({ ...inventoryFormData, productName: e.target.value })}
+                    required
+                    className="bg-white text-black border-gray-300"
+                  />
                 )}
               </div>
               <div className="space-y-2">
@@ -1068,6 +888,7 @@ const StoreDashboard = () => {
                     price: parseFloat(e.target.value) 
                   })}
                   required
+                  className="bg-white text-black border-gray-300"
                 />
               </div>
               <div className="space-y-2">
@@ -1082,7 +903,26 @@ const StoreDashboard = () => {
                     quantity: parseInt(e.target.value) 
                   })}
                   required
+                  className="bg-white text-black border-gray-300"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="image">Image</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setInventoryFormData(prev => ({ ...prev, imageUrl: URL.createObjectURL(file) }));
+                      setSelectedImageFile(file);
+                    }
+                  }}
+                  className="bg-white text-black border-gray-300"
+                />
+                {selectedImageFile && (
+                  <img src={URL.createObjectURL(selectedImageFile)} alt="Preview" className="w-24 h-24 object-cover mt-2 rounded" />
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -1095,7 +935,7 @@ const StoreDashboard = () => {
               </Button>
               <Button 
                 type="submit"
-                disabled={inventoryMutation.isPending || !inventoryFormData.medicationId}
+                disabled={inventoryMutation.isPending || (isEditMode && !inventoryFormData.medicationId)}
               >
                 {inventoryMutation.isPending ? "Saving..." : isEditMode ? "Save Changes" : "Add Product"}
               </Button>

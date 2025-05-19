@@ -1,10 +1,10 @@
-import { pgTable, text, serial, integer, boolean, timestamp, doublePrecision } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User Model
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   firstName: text("first_name").notNull(),
@@ -13,13 +13,13 @@ export const users = pgTable("users", {
   phone: text("phone"),
   address: text("address").notNull(),
   city: text("city").notNull(),
-  isStore: boolean("is_store").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  isStore: integer("is_store").default(0),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 });
 
 // Store Model
-export const stores = pgTable("stores", {
-  id: serial("id").primaryKey(),
+const stores = sqliteTable("stores", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   address: text("address").notNull(),
@@ -29,79 +29,89 @@ export const stores = pgTable("stores", {
   email: text("email").notNull(),
   openingHours: text("opening_hours").notNull(),
   description: text("description"),
-  rating: doublePrecision("rating"),
+  rating: text("rating"),
   reviewCount: integer("review_count").default(0),
   imageUrl: text("image_url"),
-  latitude: doublePrecision("latitude"),
-  longitude: doublePrecision("longitude"),
-  distance: doublePrecision("distance"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+  distance: text("distance"),
 });
 
 // Medication Model
-export const medications = pgTable("medications", {
-  id: serial("id").primaryKey(),
+const medications = sqliteTable("medications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   description: text("description"),
   dosage: text("dosage"),
   manufacturer: text("manufacturer"),
   category: text("category"),
-  price: doublePrecision("price").notNull(),
+  price: text("price").notNull(),
   imageUrl: text("image_url"),
   sideEffects: text("side_effects"),
   usageInstructions: text("usage_instructions"),
 });
 
 // Store Inventory Model
-export const storeInventory = pgTable("store_inventory", {
-  id: serial("id").primaryKey(),
+const storeInventory = sqliteTable("store_inventory", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   storeId: integer("store_id").notNull().references(() => stores.id),
   medicationId: integer("medication_id").notNull().references(() => medications.id),
-  inStock: boolean("in_stock").default(true),
+  inStock: integer("in_stock").default(1),
   quantity: integer("quantity").default(0),
-  price: doublePrecision("price"),
+  price: text("price"),
 });
 
 // Order Model
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
+const orders = sqliteTable("orders", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id),
   storeId: integer("store_id").notNull().references(() => stores.id),
   status: text("status").notNull().default("pending"),
-  totalAmount: doublePrecision("total_amount").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  totalAmount: text("total_amount").notNull(),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   pickupTime: text("pickup_time"),
   notes: text("notes"),
 });
 
 // Order Item Model
-export const orderItems = pgTable("order_items", {
-  id: serial("id").primaryKey(),
+const orderItems = sqliteTable("order_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   orderId: integer("order_id").notNull().references(() => orders.id),
   medicationId: integer("medication_id").notNull().references(() => medications.id),
   quantity: integer("quantity").notNull(),
-  price: doublePrecision("price").notNull(),
+  price: text("price").notNull(),
 });
 
 // Notification Model
-export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
+const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull(),
-  read: boolean("read").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
+  read: integer("read").default(0),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
   relatedOrderId: integer("related_order_id").references(() => orders.id),
 });
 
 // Pakistan cities
-export const pakistanCities = [
-  'Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Rawalpindi', 
-  'Multan', 'Peshawar', 'Quetta', 'Sialkot', 'Gujranwala'
+const pakistanCities = [
+  "Lahore",
+  "Karachi",
+  "Islamabad",
+  "Faisalabad",
+  "Rawalpindi",
+  "Multan",
+  "Peshawar",
+  "Quetta",
+  "Sialkot",
+  "Gujranwala",
 ] as const;
 
+type PakistanCity = typeof pakistanCities[number];
+
 // Schemas for inserts with validation
-export const insertUserSchema = createInsertSchema(users)
+const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
     password: true,
@@ -116,46 +126,37 @@ export const insertUserSchema = createInsertSchema(users)
   .extend({
     password: z.string().min(8, "Password must be at least 8 characters long"),
     email: z.string().email("Please enter a valid email address"),
-    city: z.enum(pakistanCities, {
-      errorMap: () => ({ message: "Please select a valid city in Pakistan" }),
+    city: z.custom<PakistanCity>((val) => pakistanCities.includes(val as PakistanCity), {
+      message: "Please select a valid city in Pakistan",
     }),
-    agreeToTerms: z.boolean().refine(val => val === true, {
+    agreeToTerms: z.boolean().refine((val) => val === true, {
       message: "You must agree to the terms and conditions",
     }),
   });
 
-export const insertStoreSchema = createInsertSchema(stores).omit({ 
+const insertStoreSchema = createInsertSchema(stores).omit({
   id: true,
   rating: true,
   reviewCount: true,
   distance: true,
 });
 
-export const insertMedicationSchema = createInsertSchema(medications).omit({ 
-  id: true 
-});
+const insertMedicationSchema = createInsertSchema(medications).omit({ id: true });
 
-export const insertStoreInventorySchema = createInsertSchema(storeInventory).omit({ 
-  id: true 
-});
+const insertStoreInventorySchema = createInsertSchema(storeInventory).omit({ id: true });
 
-export const insertOrderSchema = createInsertSchema(orders).omit({ 
-  id: true,
-  createdAt: true 
-});
+const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true });
 
-export const insertOrderItemSchema = createInsertSchema(orderItems).omit({ 
-  id: true 
-});
+const insertOrderItemSchema = createInsertSchema(orderItems).omit({ id: true });
 
-export const insertNotificationSchema = createInsertSchema(notifications).omit({ 
+const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   createdAt: true,
-  read: true 
+  read: true,
 });
 
 // Login schema
-export const loginSchema = z.object({
+const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters long"),
   password: z.string().min(6, "Password must be at least 6 characters long"),
 });
@@ -165,7 +166,7 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 // Add isStore field to signup schema
-export const signupSchema = insertUserSchema.extend({
+const signupSchema = insertUserSchema.extend({
   confirmPassword: z.string(),
   agreeToTerms: z.boolean(),
   isStore: z.boolean().optional().default(false),
@@ -183,3 +184,23 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Login = z.infer<typeof loginSchema>;
+
+export {
+  insertMedicationSchema,
+  insertNotificationSchema,
+  insertOrderItemSchema,
+  insertOrderSchema,
+  insertStoreInventorySchema,
+  insertStoreSchema,
+  insertUserSchema,
+  loginSchema,
+  medications,
+  notifications,
+  orderItems,
+  orders,
+  pakistanCities,
+  signupSchema,
+  storeInventory,
+  stores,
+  users,
+};
